@@ -197,16 +197,14 @@ namespace UoDangerLauncher
 
         async Task<bool> CheckAndUpdateClient()
         {
-            string localVersion = File.Exists(localVersionFile)
-                ? File.ReadAllText(localVersionFile).Trim()
-                : "";
+            bool hasLocalVersion = File.Exists(localVersionFile);
+            string localVersion = hasLocalVersion ? File.ReadAllText(localVersionFile).Trim() : "";
+            bool clientExists = Directory.Exists(clientFolder);
 
             using HttpClient http = new HttpClient();
-            // Prevent cached version.txt so we always see the latest version
             http.DefaultRequestHeaders.CacheControl = new System.Net.Http.Headers.CacheControlHeaderValue { NoCache = true };
             http.DefaultRequestHeaders.Add("Pragma", "no-cache");
 
-            // Always fetch remote version from GitHub Pages (cache-bust with query to avoid CDN cache)
             string versionUrl = remoteVersionUrl + "?t=" + DateTime.UtcNow.Ticks;
             string remoteContent;
             try
@@ -219,88 +217,144 @@ namespace UoDangerLauncher
                 return false;
             }
 
-            // Parse "1.0.0 <download_url>" or just "1.0.0" with URL on next line
+            // Format: "<version> <client_zip_url> [update_zip_url]"
             string[] parts = remoteContent.Split(new[] { ' ', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length < 2)
             {
-                MessageBox.Show("Invalid version info on server (expected version and download URL).");
+                MessageBox.Show("Invalid version info on server (expected: version client_url [update_url]).");
                 return false;
             }
 
-            string remoteVersion = parts[0].Trim().Trim('\uFEFF'); // trim and remove BOM if present
+            string remoteVersion = parts[0].Trim().Trim('\uFEFF');
             string clientZipUrl = parts[1].Trim();
+            string? updateZipUrl = parts.Length >= 3 ? parts[2].Trim() : null;
 
-            // If client folder exists and local version matches remote, skip download
-            if (Directory.Exists(clientFolder) && string.Equals(localVersion, remoteVersion, StringComparison.OrdinalIgnoreCase))
+            // Already up-to-date
+            if (clientExists && hasLocalVersion && string.Equals(localVersion, remoteVersion, StringComparison.OrdinalIgnoreCase))
             {
                 lblStatus.Text = "Client up-to-date.";
                 return true;
             }
 
-            bool isUpgrade = Directory.Exists(clientFolder);
+            bool isFreshInstall = !hasLocalVersion || !clientExists;
 
-            // Version different or no client: remove old client if present, then download & extract
-            if (isUpgrade)
+            if (isFreshInstall)
             {
-                SetLoadingState("Downloading...");
-                lblStatus.Text = "New version found. Downloading update...";
-                Directory.Delete(clientFolder, true);
-            }
-            else
-            {
+                // ── Fresh install: download and extract the full client.zip ──
                 SetLoadingState("Downloading...");
                 lblStatus.Text = "Downloading game for the first time...";
-            }
 
-            try
-            {
-                await DownloadFileWithProgress(http, clientZipUrl, "client.zip", isUpgrade ? "Downloading update" : "Downloading game");
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Download failed: " + ex.Message);
-                return false;
-            }
+                try { await DownloadFileWithProgress(http, clientZipUrl, "client.zip", "Downloading game"); }
+                catch (Exception ex) { MessageBox.Show("Download failed: " + ex.Message); return false; }
 
-            SetLoadingState("Extracting...");
-            progressBar.Style = ProgressBarStyle.Continuous;
-            progressBar.Maximum = 100;
-            progressBar.Value = 0;
-            lblStatus.Text = "Extracting game...";
-            lblStatus.Refresh();
-            Application.DoEvents();
+                SetLoadingState("Extracting...");
+                progressBar.Style = ProgressBarStyle.Continuous;
+                progressBar.Maximum = 100;
+                progressBar.Value = 0;
+                lblStatus.Text = "Extracting game...";
+                lblStatus.Refresh();
+                Application.DoEvents();
 
-            string tempExtract = "temp_extract";
-            if (Directory.Exists(tempExtract))
-                Directory.Delete(tempExtract, true);
-            Directory.CreateDirectory(tempExtract);
+                string tempExtract = "temp_extract";
+                if (Directory.Exists(tempExtract)) Directory.Delete(tempExtract, true);
+                Directory.CreateDirectory(tempExtract);
 
-            try
-            {
-                await Task.Run(() => ExtractZipWithProgress("client.zip", tempExtract));
-            }
-            finally
-            {
-                if (File.Exists("client.zip"))
-                    File.Delete("client.zip");
-            }
+                try { await Task.Run(() => ExtractZipWithProgress("client.zip", tempExtract)); }
+                finally { if (File.Exists("client.zip")) File.Delete("client.zip"); }
 
-            // Move extracted folder to Client
-            var entries = Directory.GetDirectories(tempExtract);
-            if (entries.Length == 1)
-            {
-                Directory.Move(entries[0], clientFolder);
-                Directory.Delete(tempExtract, true);
+                if (Directory.Exists(clientFolder)) Directory.Delete(clientFolder, true);
+                var topLevel = Directory.GetDirectories(tempExtract);
+                if (topLevel.Length == 1 && Directory.GetFiles(tempExtract).Length == 0)
+                {
+                    Directory.Move(topLevel[0], clientFolder);
+                    Directory.Delete(tempExtract, true);
+                }
+                else
+                {
+                    Directory.Move(tempExtract, clientFolder);
+                }
             }
             else
             {
-                Directory.Move(tempExtract, clientFolder);
+                // ── Incremental update: replace Client\ClassicUO\Data except Profiles ──
+                if (string.IsNullOrEmpty(updateZipUrl))
+                {
+                    MessageBox.Show("Update URL is not configured yet on the server. Please try again later.");
+                    return false;
+                }
+
+                SetLoadingState("Downloading...");
+                lblStatus.Text = "New version found. Downloading update...";
+
+                try { await DownloadFileWithProgress(http, updateZipUrl, "update.zip", "Downloading update"); }
+                catch (Exception ex) { MessageBox.Show("Update download failed: " + ex.Message); return false; }
+
+                SetLoadingState("Extracting...");
+                progressBar.Style = ProgressBarStyle.Continuous;
+                progressBar.Maximum = 100;
+                progressBar.Value = 0;
+                lblStatus.Text = "Applying update...";
+                lblStatus.Refresh();
+                Application.DoEvents();
+
+                string tempUpdate = "temp_update";
+                if (Directory.Exists(tempUpdate)) Directory.Delete(tempUpdate, true);
+                Directory.CreateDirectory(tempUpdate);
+
+                try
+                {
+                    await Task.Run(() => ExtractZipWithProgress("update.zip", tempUpdate));
+
+                    string dataFolder = Path.Combine(clientFolder, "ClassicUO", "Data");
+
+                    // Clear everything in Data except the Profiles folder
+                    if (Directory.Exists(dataFolder))
+                    {
+                        foreach (var dir in Directory.GetDirectories(dataFolder))
+                            if (!string.Equals(Path.GetFileName(dir), "Profiles", StringComparison.OrdinalIgnoreCase))
+                                Directory.Delete(dir, true);
+                        foreach (var file in Directory.GetFiles(dataFolder))
+                            File.Delete(file);
+                    }
+                    else
+                    {
+                        Directory.CreateDirectory(dataFolder);
+                    }
+
+                    // If the zip had a single top-level folder, treat it as the root
+                    var topLevel = Directory.GetDirectories(tempUpdate);
+                    string updateSource = topLevel.Length == 1 && Directory.GetFiles(tempUpdate).Length == 0
+                        ? topLevel[0]
+                        : tempUpdate;
+
+                    // Copy update files into Data, skipping Profiles if present in the zip
+                    await Task.Run(() => CopyDirectory(updateSource, dataFolder, excludeNames: new[] { "Profiles" }));
+                }
+                finally
+                {
+                    if (File.Exists("update.zip")) File.Delete("update.zip");
+                    if (Directory.Exists(tempUpdate)) Directory.Delete(tempUpdate, true);
+                }
             }
 
             File.WriteAllText(localVersionFile, remoteVersion);
             lblStatus.Text = "Ready.";
             lblStatus.Refresh();
             return true;
+        }
+
+        static void CopyDirectory(string sourceDir, string destDir, string[]? excludeNames = null)
+        {
+            Directory.CreateDirectory(destDir);
+            foreach (var file in Directory.GetFiles(sourceDir))
+                File.Copy(file, Path.Combine(destDir, Path.GetFileName(file)), overwrite: true);
+            foreach (var subDir in Directory.GetDirectories(sourceDir))
+            {
+                string name = Path.GetFileName(subDir);
+                if (excludeNames != null && excludeNames.Any(x => string.Equals(x, name, StringComparison.OrdinalIgnoreCase)))
+                    continue;
+                CopyDirectory(subDir, Path.Combine(destDir, name), excludeNames);
+            }
         }
 
         void ExtractZipWithProgress(string zipPath, string extractPath)
