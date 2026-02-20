@@ -291,30 +291,16 @@ namespace UoDangerLauncher
                 lblStatus.Refresh();
                 Application.DoEvents();
 
-                string tempUpdate = "temp_update";
-                if (Directory.Exists(tempUpdate)) Directory.Delete(tempUpdate, true);
-                Directory.CreateDirectory(tempUpdate);
+                string dataFolder = Path.Combine(clientFolder, "ClassicUO", "Data");
+                Directory.CreateDirectory(dataFolder);
 
                 try
                 {
-                    await Task.Run(() => ExtractZipWithProgress("update.zip", tempUpdate));
-
-                    string dataFolder = Path.Combine(clientFolder, "ClassicUO", "Data");
-                    Directory.CreateDirectory(dataFolder);
-
-                    // If the zip had a single top-level folder, treat it as the root
-                    var topLevel = Directory.GetDirectories(tempUpdate);
-                    string updateSource = topLevel.Length == 1 && Directory.GetFiles(tempUpdate).Length == 0
-                        ? topLevel[0]
-                        : tempUpdate;
-
-                    // Copy update files into Data, skipping Profiles if present in the zip
-                    await Task.Run(() => CopyDirectory(updateSource, dataFolder, excludeNames: new[] { "Profiles" }));
+                    await Task.Run(() => ApplyUpdateZip("update.zip", dataFolder));
                 }
                 finally
                 {
                     if (File.Exists("update.zip")) File.Delete("update.zip");
-                    if (Directory.Exists(tempUpdate)) Directory.Delete(tempUpdate, true);
                 }
             }
 
@@ -324,22 +310,57 @@ namespace UoDangerLauncher
             return true;
         }
 
-        static void CopyDirectory(string sourceDir, string destDir, string[]? excludeNames = null)
+        void ApplyUpdateZip(string zipPath, string dataFolder)
         {
-            Directory.CreateDirectory(destDir);
-            foreach (var file in Directory.GetFiles(sourceDir))
+            using var archive = ZipFile.OpenRead(zipPath);
+            var entries = archive.Entries.Where(e => !string.IsNullOrEmpty(e.Name)).ToList();
+            int total = Math.Max(1, entries.Count);
+            int current = 0;
+
+            const string dataMarker = "ClassicUO/Data/";
+
+            foreach (var entry in entries)
             {
-                string dest = Path.Combine(destDir, Path.GetFileName(file));
-                if (File.Exists(dest))
-                    File.SetAttributes(dest, FileAttributes.Normal);
-                File.Copy(file, dest, overwrite: true);
-            }
-            foreach (var subDir in Directory.GetDirectories(sourceDir))
-            {
-                string name = Path.GetFileName(subDir);
-                if (excludeNames != null && excludeNames.Any(x => string.Equals(x, name, StringComparison.OrdinalIgnoreCase)))
-                    continue;
-                CopyDirectory(subDir, Path.Combine(destDir, name), excludeNames);
+                // Normalize separators to forward slash for consistent matching
+                string fullName = entry.FullName.Replace('\\', '/');
+
+                // Find "ClassicUO/Data/" anywhere in the path and use everything after it
+                int idx = fullName.IndexOf(dataMarker, StringComparison.OrdinalIgnoreCase);
+                string relativePath;
+                if (idx >= 0)
+                {
+                    relativePath = fullName.Substring(idx + dataMarker.Length);
+                }
+                else
+                {
+                    // No ClassicUO/Data/ prefix — strip the top-level wrapper folder (e.g. "update/")
+                    int slash = fullName.IndexOf('/');
+                    relativePath = slash >= 0 ? fullName.Substring(slash + 1) : fullName;
+                }
+
+                if (string.IsNullOrEmpty(relativePath)) { current++; continue; }
+
+                // Skip Profiles folder
+                string firstSegment = relativePath.Split('/')[0];
+                if (string.Equals(firstSegment, "Profiles", StringComparison.OrdinalIgnoreCase)) { current++; continue; }
+
+                string destPath = Path.GetFullPath(Path.Combine(dataFolder, relativePath.Replace('/', Path.DirectorySeparatorChar)));
+
+                // Security: ensure destination is inside dataFolder
+                if (!destPath.StartsWith(Path.GetFullPath(dataFolder) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+                { current++; continue; }
+
+                Directory.CreateDirectory(Path.GetDirectoryName(destPath)!);
+
+                if (File.Exists(destPath))
+                    File.SetAttributes(destPath, FileAttributes.Normal);
+
+                entry.ExtractToFile(destPath, overwrite: true);
+
+                current++;
+                int pct = (int)((current * 100L) / total);
+                try { progressBar.Invoke(() => { progressBar.Value = Math.Min(100, pct); progressBar.Refresh(); }); }
+                catch { }
             }
         }
 
