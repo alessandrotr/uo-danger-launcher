@@ -217,17 +217,17 @@ namespace UoDangerLauncher
                 return false;
             }
 
-            // Format: "<version> <client_zip_url> [update_zip_url]"
+            // Format: "<version> <client_zip_url> <update_zip_url>"
             string[] parts = remoteContent.Split(new[] { ' ', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length < 2)
+            if (parts.Length < 3)
             {
-                MessageBox.Show("Invalid version info on server (expected: version client_url [update_url]).");
+                MessageBox.Show("Invalid version info on server (expected: version client_url update_url).");
                 return false;
             }
 
             string remoteVersion = parts[0].Trim().Trim('\uFEFF');
             string clientZipUrl = parts[1].Trim();
-            string? updateZipUrl = parts.Length >= 3 ? parts[2].Trim() : null;
+            string updateZipUrl = parts[2].Trim();
 
             // Already up-to-date
             if (clientExists && hasLocalVersion && string.Equals(localVersion, remoteVersion, StringComparison.OrdinalIgnoreCase))
@@ -277,12 +277,6 @@ namespace UoDangerLauncher
             else
             {
                 // ── Incremental update: replace Client\ClassicUO\Data except Profiles ──
-                if (string.IsNullOrEmpty(updateZipUrl))
-                {
-                    MessageBox.Show("Update URL is not configured yet on the server. Please try again later.");
-                    return false;
-                }
-
                 SetLoadingState("Downloading...");
                 lblStatus.Text = "New version found. Downloading update...";
 
