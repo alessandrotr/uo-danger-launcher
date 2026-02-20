@@ -51,10 +51,9 @@ namespace UoDangerLauncher
         {
             try
             {
-                using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("UoDangerLauncher.logo.png");
+                using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("UoDangerLauncher.logo.ico");
                 if (stream == null) return;
-                using var bmp = new Bitmap(stream);
-                this.Icon = Icon.FromHandle(new Bitmap(bmp, 32, 32).GetHicon());
+                this.Icon = new Icon(stream);
             }
             catch { /* ignore */ }
         }

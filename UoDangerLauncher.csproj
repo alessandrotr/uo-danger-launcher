@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationIcon>logo.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,6 +15,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="logo.png" />
+    <EmbeddedResource Include="logo.ico" />
     <EmbeddedResource Include="hero-home.webp" />
   </ItemGroup>
 
