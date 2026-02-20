@@ -42,8 +42,21 @@ namespace UoDangerLauncher
             TrySetBlackTitleBarAndBorders(Handle);
             LoadBackground();
             LoadLogo();
+            LoadIcon();
             CenterLayout();
             _ = SetButtonTextFromVersionAsync();
+        }
+
+        void LoadIcon()
+        {
+            try
+            {
+                using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("UoDangerLauncher.logo.png");
+                if (stream == null) return;
+                using var bmp = new Bitmap(stream);
+                this.Icon = Icon.FromHandle(new Bitmap(bmp, 32, 32).GetHicon());
+            }
+            catch { /* ignore */ }
         }
 
         static void TrySetBlackTitleBarAndBorders(IntPtr hwnd)
