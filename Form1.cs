@@ -328,7 +328,12 @@ namespace UoDangerLauncher
         {
             Directory.CreateDirectory(destDir);
             foreach (var file in Directory.GetFiles(sourceDir))
-                File.Copy(file, Path.Combine(destDir, Path.GetFileName(file)), overwrite: true);
+            {
+                string dest = Path.Combine(destDir, Path.GetFileName(file));
+                if (File.Exists(dest))
+                    File.SetAttributes(dest, FileAttributes.Normal);
+                File.Copy(file, dest, overwrite: true);
+            }
             foreach (var subDir in Directory.GetDirectories(sourceDir))
             {
                 string name = Path.GetFileName(subDir);
