@@ -5,6 +5,7 @@ using System.Drawing.Drawing2D;
 using System.IO;
 using System.IO.Compression;
 using System.Net.Http;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -67,11 +68,11 @@ namespace UoDangerLauncher
 
         void LoadBackground()
         {
-            string path = Path.Combine(Application.StartupPath, "hero-home.webp");
-            if (!File.Exists(path)) return;
             try
             {
-                using var webp = SixLabors.ImageSharp.Image.Load(path);
+                using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("UoDangerLauncher.hero-home.webp");
+                if (stream == null) return;
+                using var webp = SixLabors.ImageSharp.Image.Load(stream);
                 using var ms = new MemoryStream();
                 webp.Save(ms, new PngEncoder());
                 ms.Position = 0;
@@ -112,11 +113,10 @@ namespace UoDangerLauncher
 
         void LoadLogo()
         {
-            string path = Path.Combine(Application.StartupPath, "logo.png");
-            if (!File.Exists(path)) return;
             try
             {
-                using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+                using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("UoDangerLauncher.logo.png");
+                if (stream == null) return;
                 picLogo.Image = Image.FromStream(stream);
                 if (picLogo.Image != null)
                 {
