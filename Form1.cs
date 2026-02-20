@@ -306,20 +306,7 @@ namespace UoDangerLauncher
                     await Task.Run(() => ExtractZipWithProgress("update.zip", tempUpdate));
 
                     string dataFolder = Path.Combine(clientFolder, "ClassicUO", "Data");
-
-                    // Clear everything in Data except the Profiles folder
-                    if (Directory.Exists(dataFolder))
-                    {
-                        foreach (var dir in Directory.GetDirectories(dataFolder))
-                            if (!string.Equals(Path.GetFileName(dir), "Profiles", StringComparison.OrdinalIgnoreCase))
-                                Directory.Delete(dir, true);
-                        foreach (var file in Directory.GetFiles(dataFolder))
-                            File.Delete(file);
-                    }
-                    else
-                    {
-                        Directory.CreateDirectory(dataFolder);
-                    }
+                    Directory.CreateDirectory(dataFolder);
 
                     // If the zip had a single top-level folder, treat it as the root
                     var topLevel = Directory.GetDirectories(tempUpdate);
