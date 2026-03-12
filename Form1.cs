@@ -20,6 +20,9 @@ namespace UoDangerLauncher
         string remoteVersionUrl = "https://alessandrotr.github.io/uo-danger-client/version.txt";
         string clientFolder = "Client";
 
+        const string ServerIP = "51.68.191.126";
+        const string ServerPort = "2593";
+
         static readonly System.Drawing.Color ButtonColorNormal = System.Drawing.Color.FromArgb(201, 162, 39);
         static readonly System.Drawing.Color ButtonColorDisabled = System.Drawing.Color.FromArgb(160, 130, 35);
         string _btnPlayDefaultText = "Play";
@@ -285,6 +288,11 @@ namespace UoDangerLauncher
                 {
                     Directory.Move(tempExtract, clientFolder);
                 }
+
+                // Wipe Profiles after fresh install so no saved credentials are shipped
+                string profilesDir = Path.Combine(clientFolder, "ClassicUO", "Data", "Profiles");
+                if (Directory.Exists(profilesDir))
+                    Directory.Delete(profilesDir, true);
             }
             else
             {
@@ -452,11 +460,12 @@ namespace UoDangerLauncher
 
         void LaunchGame()
         {
-            string clientExePath = Path.Combine(clientFolder, "ClassicUOLauncher.exe");
+            string classicUOExe = Path.Combine(clientFolder, "ClassicUO", "ClassicUO.exe");
+            string uoDataPath = Path.GetFullPath(Path.Combine(clientFolder, "ClassicUO", "Data"));
 
-            if (!File.Exists(clientExePath))
+            if (!File.Exists(classicUOExe))
             {
-                MessageBox.Show("Client executable not found!");
+                MessageBox.Show("ClassicUO executable not found!");
                 SetButtonIdle();
                 return;
             }
@@ -467,7 +476,8 @@ namespace UoDangerLauncher
             Application.DoEvents();
             Process.Start(new ProcessStartInfo
             {
-                FileName = clientExePath,
+                FileName = classicUOExe,
+                Arguments = $"-ip {ServerIP} -port {ServerPort} -uopath \"{uoDataPath}\"",
                 UseShellExecute = true
             });
             Environment.Exit(0);
