@@ -10,6 +10,7 @@ partial class Form1
     private System.Windows.Forms.ProgressBar progressBar;
     private System.Windows.Forms.Panel panelFooter;
     private System.Windows.Forms.Label lblStatus;
+    private System.Windows.Forms.Label lblMessage;
 
     protected override void Dispose(bool disposing)
     {
@@ -50,12 +51,24 @@ partial class Form1
         picLogo.TabIndex = 0;
         picLogo.TabStop = false;
 
-        // —— Center (button centered in code) ——
+        // —— Center (button + message, centered in code) ——
+        lblMessage = new Label();
         panelCenter.BackColor = Color.Transparent;
         panelCenter.Controls.Add(btnPlay);
+        panelCenter.Controls.Add(lblMessage);
         panelCenter.Dock = DockStyle.Fill;
         panelCenter.Size = new Size(800, 262);
         panelCenter.MinimumSize = new Size(400, 200);
+
+        lblMessage.Anchor = AnchorStyles.None;
+        lblMessage.AutoSize = false;
+        lblMessage.Font = new Font("Segoe UI", 10F);
+        lblMessage.ForeColor = Color.FromArgb(180, 180, 185);
+        lblMessage.BackColor = Color.Transparent;
+        lblMessage.Size = new Size(600, 60);
+        lblMessage.TextAlign = ContentAlignment.TopCenter;
+        lblMessage.Text = "";
+        lblMessage.Visible = false;
 
         btnPlay.Anchor = AnchorStyles.None;
         btnPlay.AutoSize = false;

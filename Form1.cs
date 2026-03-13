@@ -159,9 +159,12 @@ namespace UoDangerLauncher
             {
                 int cw = panelCenter.ClientSize.Width;
                 int ch = panelCenter.ClientSize.Height;
+                int btnY = Math.Max(0, (ch - btnPlay.Height) / 2 - 30);
                 btnPlay.Location = new Point(
-                    Math.Max(0, (cw - btnPlay.Width) / 2),
-                    Math.Max(0, (ch - btnPlay.Height) / 2));
+                    Math.Max(0, (cw - btnPlay.Width) / 2), btnY);
+                lblMessage.Location = new Point(
+                    Math.Max(0, (cw - lblMessage.Width) / 2),
+                    btnY + btnPlay.Height + 16);
             }
         }
 
@@ -193,6 +196,7 @@ namespace UoDangerLauncher
             btnPlay.Enabled = true;
             btnPlay.Text = _btnPlayDefaultText;
             btnPlay.BackColor = ButtonColorNormal;
+            lblMessage.Visible = false;
         }
 
         private async void btnPlay_Click(object sender, EventArgs e)
@@ -258,6 +262,8 @@ namespace UoDangerLauncher
                 // ── Fresh install: download and extract the full client.zip ──
                 SetLoadingState("Downloading...");
                 lblStatus.Text = "Downloading game for the first time...";
+                lblMessage.Text = "The game is being downloaded. Once installed, new files and folders will appear next to the launcher.\nPlease do not move, rename, or delete any of them.";
+                lblMessage.Visible = true;
 
                 try { await DownloadFileWithProgress(http, clientZipUrl, "client.zip", "Downloading game"); }
                 catch (Exception ex) { MessageBox.Show("Download failed: " + ex.Message); return false; }
@@ -299,6 +305,8 @@ namespace UoDangerLauncher
                 // ── Incremental update: replace Client\ClassicUO\Data except Profiles ──
                 SetLoadingState("Downloading...");
                 lblStatus.Text = "New version found. Downloading update...";
+                lblMessage.Text = "A new update is being installed to improve your game experience.\nYour settings and profiles will be preserved.";
+                lblMessage.Visible = true;
 
                 try { await DownloadFileWithProgress(http, updateZipUrl, "update.zip", "Downloading update"); }
                 catch (Exception ex) { MessageBox.Show("Update download failed: " + ex.Message); return false; }
