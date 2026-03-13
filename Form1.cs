@@ -69,22 +69,18 @@ namespace UoDangerLauncher
         [DllImport("dwmapi.dll")]
         static extern int DwmExtendFrameIntoClientArea(IntPtr hWnd, ref MARGINS margins);
 
-        protected override void WndProc(ref Message m)
-        {
-            const int WM_NCHITTEST = 0x84;
-            const int HTCAPTION = 2;
+        [DllImport("user32.dll")]
+        static extern int SendMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
+        [DllImport("user32.dll")]
+        static extern bool ReleaseCapture();
 
-            if (m.Msg == WM_NCHITTEST)
+        void DragForm(object? sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
             {
-                var pt = PointToClient(new Point((short)(m.LParam.ToInt32() & 0xFFFF), (short)(m.LParam.ToInt32() >> 16)));
-                // Title bar drag area (top pixels, but not over close/minimize buttons)
-                if (pt.Y < TitleBarHeight && pt.X < ClientSize.Width - 70)
-                {
-                    m.Result = (IntPtr)HTCAPTION;
-                    return;
-                }
+                ReleaseCapture();
+                SendMessage(Handle, 0xA1 /* WM_NCLBUTTONDOWN */, 2 /* HTCAPTION */, 0);
             }
-            base.WndProc(ref m);
         }
 
         void btnClose_Click(object? sender, EventArgs e) => Close();
@@ -102,9 +98,22 @@ namespace UoDangerLauncher
             LoadIcon();
             CenterLayout();
             SetupWindowButtonHovers();
+            SetupDrag();
+
+            lblServerStatus.Text = "\u25CF Checking...";
+            lblServerStatus.ForeColor = Color.FromArgb(130, 130, 135);
+            PositionServerStatus();
+
             _ = SetButtonTextFromVersionAsync();
             _ = CheckServerStatusLoop();
             StartMusic();
+        }
+
+        void SetupDrag()
+        {
+            // Allow dragging from header panel and logo
+            panelHeader.MouseDown += DragForm;
+            picLogo.MouseDown += DragForm;
         }
 
         protected override void OnFormClosed(FormClosedEventArgs e)
@@ -260,11 +269,7 @@ namespace UoDangerLauncher
 
         void PositionMuteLabel()
         {
-            if (lblMute == null || panelFooter == null) return;
-            var sz = TextRenderer.MeasureText(lblMute.Text, lblMute.Font);
-            lblMute.Location = new Point(
-                panelFooter.ClientSize.Width - panelFooter.Padding.Right - sz.Width,
-                54);
+            // Fixed top-left position in panelHeader, no repositioning needed
         }
 
         // ═══════════════════════════════════════════════════════════════

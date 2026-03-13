@@ -181,18 +181,18 @@ partial class Form1
         lnkDiscord.LinkClicked += lnkDiscord_LinkClicked;
         panelFooter.Controls.Add(lnkDiscord);
 
-        // Music mute toggle
-        lblMute.Anchor = AnchorStyles.Right | AnchorStyles.Top;
+        // Music mute toggle (top-left)
+        lblMute.Anchor = AnchorStyles.Left | AnchorStyles.Top;
         lblMute.AutoSize = true;
         lblMute.Font = new Font("Segoe UI", 9F);
-        lblMute.ForeColor = Color.FromArgb(120, 120, 125);
+        lblMute.ForeColor = Color.FromArgb(140, 140, 145);
         lblMute.BackColor = Color.Transparent;
         lblMute.Cursor = Cursors.Hand;
-        lblMute.Location = new Point(700, 54);
+        lblMute.Location = new Point(10, 8);
         lblMute.Text = "";
         lblMute.Visible = false;
         lblMute.Click += lblMute_Click;
-        panelFooter.Controls.Add(lblMute);
+        panelHeader.Controls.Add(lblMute);
 
         // —— Form ——
         AutoScaleDimensions = new SizeF(96F, 96F);
