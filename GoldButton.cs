@@ -9,7 +9,7 @@ namespace UoDangerLauncher
     public class GoldButton : Button
     {
         private float _glowIntensity;
-        private readonly Timer _animTimer;
+        private readonly System.Windows.Forms.Timer _animTimer;
         private bool _hovering;
         private bool _pressing;
 
@@ -21,7 +21,7 @@ namespace UoDangerLauncher
                 ControlStyles.OptimizedDoubleBuffer, true);
             FlatStyle = FlatStyle.Flat;
             FlatAppearance.BorderSize = 0;
-            _animTimer = new Timer { Interval = 16 };
+            _animTimer = new System.Windows.Forms.Timer { Interval = 16 };
             _animTimer.Tick += AnimTick;
         }
 

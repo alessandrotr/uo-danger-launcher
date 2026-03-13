@@ -11,7 +11,7 @@ namespace UoDangerLauncher
         private int _maximum = 100;
         private ProgressBarStyle _style = ProgressBarStyle.Continuous;
         private int _marqueeOffset;
-        private Timer? _marqueeTimer;
+        private System.Windows.Forms.Timer? _marqueeTimer;
 
         public int Value
         {
@@ -34,7 +34,7 @@ namespace UoDangerLauncher
                 _style = value;
                 if (_style == ProgressBarStyle.Marquee)
                 {
-                    _marqueeTimer ??= new Timer { Interval = 30 };
+                    _marqueeTimer ??= new System.Windows.Forms.Timer { Interval = 30 };
                     _marqueeTimer.Tick -= MarqueeTick;
                     _marqueeTimer.Tick += MarqueeTick;
                     _marqueeTimer.Start();
