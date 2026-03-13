@@ -216,7 +216,7 @@ namespace UoDangerLauncher
             var sz = TextRenderer.MeasureText(lblServerStatus.Text, lblServerStatus.Font);
             lblServerStatus.Location = new Point(
                 panelFooter.ClientSize.Width - panelFooter.Padding.Right - sz.Width,
-                54);
+                64);
         }
 
         // ═══════════════════════════════════════════════════════════════
@@ -414,7 +414,7 @@ namespace UoDangerLauncher
                 return;
             }
 
-            lblVersion.Text = $"v{localVersion}";
+            lblVersion.Text = $"Client v{localVersion}";
             PositionVersionLabel();
 
             try
@@ -657,7 +657,7 @@ namespace UoDangerLauncher
             }
 
             File.WriteAllText(localVersionFile, remoteVersion);
-            lblVersion.Text = $"v{remoteVersion}";
+            lblVersion.Text = $"Client v{remoteVersion}";
             PositionVersionLabel();
             lblStatus.Text = "Ready.";
             lblStatus.Refresh();

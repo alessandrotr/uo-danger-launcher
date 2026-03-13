@@ -141,13 +141,13 @@ partial class Form1
         progressBar.Visible = true;
         panelFooter.Controls.Add(progressBar);
 
-        // Server status indicator (right of progress bar)
-        lblServerStatus.Anchor = AnchorStyles.Right | AnchorStyles.Top;
+        // Server status indicator (bottom-right)
+        lblServerStatus.Anchor = AnchorStyles.Right | AnchorStyles.Bottom;
         lblServerStatus.AutoSize = true;
-        lblServerStatus.Font = new Font("Segoe UI", 8.5F);
+        lblServerStatus.Font = new Font("Segoe UI", 8F);
         lblServerStatus.ForeColor = Color.FromArgb(100, 100, 105);
         lblServerStatus.BackColor = Color.Transparent;
-        lblServerStatus.Location = new Point(680, 54);
+        lblServerStatus.Location = new Point(680, 64);
         lblServerStatus.Text = "";
         panelFooter.Controls.Add(lblServerStatus);
 
