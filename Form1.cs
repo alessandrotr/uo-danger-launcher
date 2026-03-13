@@ -257,7 +257,7 @@ namespace UoDangerLauncher
                     ? $"Server: {ServerIP}:{ServerPort}\nPing: {pingMs}ms"
                     : $"Server: {ServerIP}:{ServerPort}\nStatus: Unreachable");
                 PositionServerStatus();
-                await Task.Delay(30_000);
+                await Task.Delay(300_000); // 5 minutes — avoid triggering IP rate limits
             }
         }
 
