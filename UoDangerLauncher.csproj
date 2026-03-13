@@ -13,14 +13,11 @@
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
   </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.7" />
-  </ItemGroup>
 
-  <ItemGroup>
+<ItemGroup>
     <EmbeddedResource Include="logo.png" />
     <EmbeddedResource Include="logo.ico" />
-    <EmbeddedResource Include="hero-home.webp" />
+    <EmbeddedResource Include="hero-home.png" />
     <EmbeddedResource Include="music.mp3" Condition="Exists('music.mp3')" />
   </ItemGroup>
 

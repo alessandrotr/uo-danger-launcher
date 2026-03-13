@@ -11,7 +11,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using SixLabors.ImageSharp.Formats.Png;
+
 using System.Linq;
 using System.Text.Json;
 
@@ -45,7 +45,7 @@ namespace UoDangerLauncher
         // ═══════════════════════════════════════════════════════════════
 
         static readonly string SettingsFilePath = Path.Combine(
-            AppDomain.CurrentDomain.BaseDirectory, "settings.json");
+            AppDomain.CurrentDomain.BaseDirectory, "launcher_settings.json");
 
         class LauncherSettings
         {
@@ -216,13 +216,9 @@ namespace UoDangerLauncher
         {
             try
             {
-                using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("UoDangerLauncher.hero-home.webp");
+                using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("UoDangerLauncher.hero-home.png");
                 if (stream == null) return;
-                using var webp = SixLabors.ImageSharp.Image.Load(stream);
-                using var ms = new MemoryStream();
-                webp.Save(ms, new PngEncoder());
-                ms.Position = 0;
-                _backgroundImage = System.Drawing.Image.FromStream(ms, false);
+                _backgroundImage = System.Drawing.Image.FromStream(stream);
             }
             catch { }
         }
