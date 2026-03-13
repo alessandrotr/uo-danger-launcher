@@ -60,9 +60,11 @@ namespace UoDangerLauncher
         public GoldProgressBar()
         {
             SetStyle(
-                ControlStyles.AllPaintingInWmPaint |
                 ControlStyles.UserPaint |
-                ControlStyles.OptimizedDoubleBuffer, true);
+                ControlStyles.AllPaintingInWmPaint |
+                ControlStyles.OptimizedDoubleBuffer |
+                ControlStyles.SupportsTransparentBackColor, true);
+            BackColor = Color.FromArgb(0, 0, 0, 0);
             Height = 16;
         }
 
@@ -70,9 +72,6 @@ namespace UoDangerLauncher
         {
             var g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
-
-            // Clear with parent background to avoid white corners
-            g.Clear(Parent?.BackColor ?? Color.Black);
 
             int radius = Height / 2;
             var bounds = new Rectangle(0, 0, Width, Height);

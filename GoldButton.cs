@@ -16,9 +16,10 @@ namespace UoDangerLauncher
         public GoldButton()
         {
             SetStyle(
-                ControlStyles.AllPaintingInWmPaint |
                 ControlStyles.UserPaint |
-                ControlStyles.OptimizedDoubleBuffer, true);
+                ControlStyles.AllPaintingInWmPaint |
+                ControlStyles.OptimizedDoubleBuffer |
+                ControlStyles.SupportsTransparentBackColor, true);
             FlatStyle = FlatStyle.Flat;
             FlatAppearance.BorderSize = 0;
             _animTimer = new System.Windows.Forms.Timer { Interval = 16 };
@@ -85,9 +86,6 @@ namespace UoDangerLauncher
 
             const int radius = 14;
             var rect = new Rectangle(0, 0, Width - 1, Height - 1);
-
-            // Clear with parent background to avoid artifacts around corners
-            g.Clear(Parent?.BackColor ?? Color.Black);
 
             // Button body — subtle lighten on hover
             Color baseColor = Enabled ? BackColor : Color.FromArgb(100, 85, 25);
