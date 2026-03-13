@@ -165,7 +165,7 @@ partial class Form1
         lblVersion.AutoSize = true;
         lblVersion.Font = new Font("Segoe UI", 9F);
         lblVersion.ForeColor = Color.FromArgb(90, 90, 95);
-        lblVersion.Location = new Point(700, 30);
+        lblVersion.Location = new Point(700, 36);
         lblVersion.Text = "";
         lblVersion.BackColor = Color.Transparent;
         panelFooter.Controls.Add(lblVersion);

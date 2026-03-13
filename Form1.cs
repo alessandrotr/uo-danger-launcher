@@ -509,7 +509,7 @@ namespace UoDangerLauncher
             var sz = TextRenderer.MeasureText(lblVersion.Text, lblVersion.Font);
             lblVersion.Location = new Point(
                 panelFooter.ClientSize.Width - panelFooter.Padding.Right - sz.Width,
-                30);
+                36);
         }
 
         // ═══════════════════════════════════════════════════════════════
