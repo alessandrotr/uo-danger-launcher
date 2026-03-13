@@ -64,7 +64,6 @@ namespace UoDangerLauncher
                 ControlStyles.UserPaint |
                 ControlStyles.OptimizedDoubleBuffer, true);
             Height = 16;
-            BackColor = Color.Transparent;
         }
 
         protected override void OnPaint(PaintEventArgs e)
