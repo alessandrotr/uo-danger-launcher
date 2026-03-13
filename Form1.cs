@@ -123,7 +123,7 @@ namespace UoDangerLauncher
             Resize += (s, e) => { CenterLayout(); PositionVersionLabel(); PositionMuteLabel(); PositionServerStatus(); };
         }
 
-        const int LogoMaxHeight = 260;
+        const int LogoMaxHeight = 180;
         const int LogoTopMargin = 120;
         const int TitleBarHeight = 34;
 

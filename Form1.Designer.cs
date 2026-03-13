@@ -108,7 +108,7 @@ partial class Form1
         lblMessage.Font = new Font("Segoe UI", 10F);
         lblMessage.ForeColor = Color.FromArgb(180, 180, 185);
         lblMessage.BackColor = Color.Transparent;
-        lblMessage.Size = new Size(600, 60);
+        lblMessage.Size = new Size(720, 60);
         lblMessage.TextAlign = ContentAlignment.TopCenter;
         lblMessage.Text = "";
         lblMessage.Visible = false;

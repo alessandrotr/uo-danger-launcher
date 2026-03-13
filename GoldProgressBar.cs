@@ -100,7 +100,14 @@ namespace UoDangerLauncher
                     g.FillRectangle(brush, barRect);
                 }
             }
-            else if (_value > 0 && _maximum > 0)
+            // Border outline to prevent clipping artifacts
+            using (var borderPen = new Pen(Color.FromArgb(50, 50, 55), 1f))
+            {
+                using var borderPath = RoundedRect(new Rectangle(0, 0, Width - 1, Height - 1), radius);
+                g.DrawPath(borderPen, borderPath);
+            }
+
+            if (_value > 0 && _maximum > 0)
             {
                 int fillWidth = (int)((long)_value * Width / _maximum);
                 fillWidth = Math.Clamp(fillWidth, 4, Width);
