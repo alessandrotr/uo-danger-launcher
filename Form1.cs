@@ -54,14 +54,21 @@ namespace UoDangerLauncher
         //  Custom window chrome
         // ═══════════════════════════════════════════════════════════════
 
-        protected override CreateParams CreateParams
+        // Suppress flicker when restoring from minimized + block maximize
+        protected override void WndProc(ref Message m)
         {
-            get
-            {
-                var cp = base.CreateParams;
-                cp.ExStyle |= 0x02000000; // WS_EX_COMPOSITED — eliminates flicker on restore
-                return cp;
-            }
+            const int WM_SYSCOMMAND = 0x0112;
+            const int SC_MAXIMIZE = 0xF030;
+            // Block maximize (double-click title bar, Win+Up, etc.)
+            if (m.Msg == WM_SYSCOMMAND && (m.WParam.ToInt32() & 0xFFF0) == SC_MAXIMIZE)
+                return;
+
+            base.WndProc(ref m);
+
+            const int WM_SIZE = 0x0005;
+            const int SIZE_RESTORED = 0;
+            if (m.Msg == WM_SIZE && m.WParam.ToInt32() == SIZE_RESTORED)
+                Refresh();
         }
 
         protected override void OnHandleCreated(EventArgs e)
