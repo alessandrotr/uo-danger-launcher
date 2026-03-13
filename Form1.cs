@@ -13,12 +13,12 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using SixLabors.ImageSharp.Formats.Png;
 using System.Linq;
+using System.Text.Json;
 
 namespace UoDangerLauncher
 {
     public partial class Form1 : Form
     {
-        string localVersionFile = "version.txt";
         string remoteVersionUrl = "https://alessandrotr.github.io/uo-danger-client/version.txt";
         string clientFolder = "Client";
 
@@ -26,7 +26,7 @@ namespace UoDangerLauncher
         const string ServerPort = "2593";
         const string DiscordInviteUrl = "https://discord.gg/9zsZDuMK6c";
 
-        const string LauncherVersion = "1.0.0";
+        const string LauncherVersionFallback = "1.0.0";
         string remoteLauncherVersionUrl = "https://alessandrotr.github.io/uo-danger-client/launcher_version.txt";
 
         static readonly System.Drawing.Color ButtonColorNormal = System.Drawing.Color.FromArgb(201, 162, 39);
@@ -40,8 +40,81 @@ namespace UoDangerLauncher
         bool _musicMuted;
         string? _musicTempPath;
 
-        static readonly string SettingsFile = Path.Combine(
-            AppDomain.CurrentDomain.BaseDirectory, "launcher_settings.txt");
+        // ═══════════════════════════════════════════════════════════════
+        //  Unified settings (settings.json)
+        // ═══════════════════════════════════════════════════════════════
+
+        static readonly string SettingsFilePath = Path.Combine(
+            AppDomain.CurrentDomain.BaseDirectory, "settings.json");
+
+        class LauncherSettings
+        {
+            public bool MusicMuted { get; set; }
+            public string LauncherVersion { get; set; } = LauncherVersionFallback;
+            public string ClientVersion { get; set; } = "";
+        }
+
+        LauncherSettings _settings = new();
+
+        void LoadSettings()
+        {
+            try
+            {
+                if (File.Exists(SettingsFilePath))
+                {
+                    string json = File.ReadAllText(SettingsFilePath);
+                    _settings = JsonSerializer.Deserialize<LauncherSettings>(json) ?? new();
+                }
+            }
+            catch { _settings = new(); }
+
+            // Migrate from old files if settings.json didn't have the values
+            MigrateOldFiles();
+        }
+
+        void MigrateOldFiles()
+        {
+            bool migrated = false;
+            string oldVersionFile = "version.txt";
+            string oldSettingsFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "launcher_settings.txt");
+            string oldLauncherVersionFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "launcher_version_local.txt");
+
+            try
+            {
+                if (File.Exists(oldVersionFile) && string.IsNullOrEmpty(_settings.ClientVersion))
+                {
+                    _settings.ClientVersion = File.ReadAllText(oldVersionFile).Trim();
+                    File.Delete(oldVersionFile);
+                    migrated = true;
+                }
+                if (File.Exists(oldSettingsFile))
+                {
+                    string content = File.ReadAllText(oldSettingsFile).Trim();
+                    _settings.MusicMuted = string.Equals(content, "muted", StringComparison.OrdinalIgnoreCase);
+                    File.Delete(oldSettingsFile);
+                    migrated = true;
+                }
+                if (File.Exists(oldLauncherVersionFile))
+                {
+                    _settings.LauncherVersion = File.ReadAllText(oldLauncherVersionFile).Trim();
+                    File.Delete(oldLauncherVersionFile);
+                    migrated = true;
+                }
+            }
+            catch { }
+
+            if (migrated) SaveSettings();
+        }
+
+        void SaveSettings()
+        {
+            try
+            {
+                string json = JsonSerializer.Serialize(_settings, new JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(SettingsFilePath, json);
+            }
+            catch { }
+        }
 
         public Form1()
         {
@@ -99,6 +172,7 @@ namespace UoDangerLauncher
         protected override void OnLoad(EventArgs e)
         {
             base.OnLoad(e);
+            LoadSettings();
             LoadBackground();
             LoadLogo();
             LoadIcon();
@@ -226,24 +300,12 @@ namespace UoDangerLauncher
         [DllImport("winmm.dll", CharSet = CharSet.Unicode)]
         static extern int mciSendString(string command, StringBuilder? buffer, int bufferSize, IntPtr callback);
 
-        bool LoadMuteSetting()
-        {
-            try
-            {
-                if (File.Exists(SettingsFile))
-                {
-                    string content = File.ReadAllText(SettingsFile).Trim();
-                    return string.Equals(content, "muted", StringComparison.OrdinalIgnoreCase);
-                }
-            }
-            catch { }
-            return false;
-        }
+        bool LoadMuteSetting() => _settings.MusicMuted;
 
         void SaveMuteSetting(bool muted)
         {
-            try { File.WriteAllText(SettingsFile, muted ? "muted" : "unmuted"); }
-            catch { }
+            _settings.MusicMuted = muted;
+            SaveSettings();
         }
 
         void StartMusic()
@@ -315,11 +377,15 @@ namespace UoDangerLauncher
         //  Launcher self-update
         // ═══════════════════════════════════════════════════════════════
 
+        string GetLocalLauncherVersion() => _settings.LauncherVersion;
+
         async Task CheckLauncherUpdateThenInit()
         {
             lblStatus.Text = "Checking for launcher updates...";
             try
             {
+                string localLauncherVersion = GetLocalLauncherVersion();
+
                 using var http = new HttpClient();
                 http.DefaultRequestHeaders.CacheControl = new System.Net.Http.Headers.CacheControlHeaderValue { NoCache = true };
                 string content = (await http.GetStringAsync(remoteLauncherVersionUrl + "?t=" + DateTime.UtcNow.Ticks)).Trim();
@@ -330,11 +396,11 @@ namespace UoDangerLauncher
                     string remoteVersion = parts[0].Trim().Trim('\uFEFF');
                     string downloadUrl = parts[1].Trim();
 
-                    if (!string.Equals(remoteVersion, LauncherVersion, StringComparison.OrdinalIgnoreCase))
+                    if (!string.Equals(remoteVersion, localLauncherVersion, StringComparison.OrdinalIgnoreCase))
                     {
                         lblStatus.Text = $"Updating launcher to v{remoteVersion}...";
                         progressBar.Style = ProgressBarStyle.Marquee;
-                        await UpdateLauncher(http, downloadUrl);
+                        await UpdateLauncher(http, downloadUrl, remoteVersion);
                         return; // App will restart
                     }
                 }
@@ -350,7 +416,7 @@ namespace UoDangerLauncher
             StartMusic();
         }
 
-        async Task UpdateLauncher(HttpClient http, string downloadUrl)
+        async Task UpdateLauncher(HttpClient http, string downloadUrl, string newVersion)
         {
             string currentExe = Application.ExecutablePath;
             string tempExe = currentExe + ".update";
@@ -369,6 +435,10 @@ namespace UoDangerLauncher
                 if (File.Exists(oldExe)) File.Delete(oldExe);
                 File.Move(currentExe, oldExe);
                 File.Move(tempExe, currentExe);
+
+                // Save the new version locally so next launch knows it's up-to-date
+                _settings.LauncherVersion = newVersion;
+                SaveSettings();
 
                 // Restart
                 Process.Start(new ProcessStartInfo
@@ -405,8 +475,8 @@ namespace UoDangerLauncher
 
         async Task SetButtonTextFromVersionAsync()
         {
-            string localVersion = File.Exists(localVersionFile) ? File.ReadAllText(localVersionFile).Trim() : "";
-            if (!Directory.Exists(clientFolder) || !File.Exists(localVersionFile))
+            string localVersion = _settings.ClientVersion;
+            if (!Directory.Exists(clientFolder) || string.IsNullOrEmpty(localVersion))
             {
                 _btnPlayDefaultText = "Download";
                 btnPlay.Text = "Download";
@@ -545,8 +615,8 @@ namespace UoDangerLauncher
 
         async Task<bool> CheckAndUpdateClient()
         {
-            bool hasLocalVersion = File.Exists(localVersionFile);
-            string localVersion = hasLocalVersion ? File.ReadAllText(localVersionFile).Trim() : "";
+            string localVersion = _settings.ClientVersion;
+            bool hasLocalVersion = !string.IsNullOrEmpty(localVersion);
             bool clientExists = Directory.Exists(clientFolder);
 
             using HttpClient http = new HttpClient();
@@ -656,7 +726,8 @@ namespace UoDangerLauncher
                 }
             }
 
-            File.WriteAllText(localVersionFile, remoteVersion);
+            _settings.ClientVersion = remoteVersion;
+            SaveSettings();
             lblVersion.Text = $"Client v{remoteVersion}";
             PositionVersionLabel();
             lblStatus.Text = "Ready.";
