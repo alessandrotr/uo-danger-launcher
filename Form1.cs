@@ -54,6 +54,16 @@ namespace UoDangerLauncher
         //  Custom window chrome
         // ═══════════════════════════════════════════════════════════════
 
+        protected override CreateParams CreateParams
+        {
+            get
+            {
+                var cp = base.CreateParams;
+                cp.ExStyle |= 0x02000000; // WS_EX_COMPOSITED — eliminates flicker on restore
+                return cp;
+            }
+        }
+
         protected override void OnHandleCreated(EventArgs e)
         {
             base.OnHandleCreated(e);
