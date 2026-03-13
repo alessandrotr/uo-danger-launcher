@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
@@ -13,18 +14,21 @@ namespace UoDangerLauncher
         private int _marqueeOffset;
         private System.Windows.Forms.Timer? _marqueeTimer;
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public int Value
         {
             get => _value;
             set { _value = Math.Clamp(value, 0, _maximum); Invalidate(); }
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public int Maximum
         {
             get => _maximum;
             set { _maximum = Math.Max(1, value); Invalidate(); }
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public ProgressBarStyle Style
         {
             get => _style;

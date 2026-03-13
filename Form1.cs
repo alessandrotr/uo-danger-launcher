@@ -50,7 +50,7 @@ namespace UoDangerLauncher
 
             // Fade-in animation
             Opacity = 0;
-            var fadeTimer = new Timer { Interval = 16 };
+            var fadeTimer = new System.Windows.Forms.Timer { Interval = 16 };
             fadeTimer.Tick += (s, ev) =>
             {
                 Opacity += 0.05;
