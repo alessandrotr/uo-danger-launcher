@@ -25,6 +25,7 @@ namespace UoDangerLauncher
         const string ServerIP = "51.68.191.126";
         const string ServerPort = "2593";
         const string DiscordInviteUrl = "https://discord.gg/9zsZDuMK6c";
+        const string WebsiteUrl = "https://uo-danger-web.vercel.app/";
 
         const string LauncherVersionFallback = "1.0.0";
         string remoteLauncherVersionUrl = "https://alessandrotr.github.io/uo-danger-client/launcher_version.txt";
@@ -875,6 +876,12 @@ namespace UoDangerLauncher
         void lnkDiscord_LinkClicked(object? sender, LinkLabelLinkClickedEventArgs e)
         {
             try { Process.Start(new ProcessStartInfo(DiscordInviteUrl) { UseShellExecute = true }); }
+            catch { }
+        }
+
+        void lnkWebsite_LinkClicked(object? sender, LinkLabelLinkClickedEventArgs e)
+        {
+            try { Process.Start(new ProcessStartInfo(WebsiteUrl) { UseShellExecute = true }); }
             catch { }
         }
 

@@ -17,6 +17,7 @@ partial class Form1
     private System.Windows.Forms.Label btnMinimize;
     private System.Windows.Forms.Label lblServerStatus;
     private System.Windows.Forms.Label lblMute;
+    private System.Windows.Forms.LinkLabel lnkWebsite;
 
     protected override void Dispose(bool disposing)
     {
@@ -42,6 +43,7 @@ partial class Form1
         btnMinimize = new Label();
         lblServerStatus = new Label();
         lblMute = new Label();
+        lnkWebsite = new LinkLabel();
 
         panelHeader.SuspendLayout();
         ((System.ComponentModel.ISupportInitialize)picLogo).BeginInit();
@@ -179,6 +181,18 @@ partial class Form1
         lnkDiscord.Text = "Join our Discord";
         lnkDiscord.LinkClicked += lnkDiscord_LinkClicked;
         panelFooter.Controls.Add(lnkDiscord);
+
+        lnkWebsite.Anchor = AnchorStyles.Left | AnchorStyles.Top;
+        lnkWebsite.AutoSize = true;
+        lnkWebsite.Font = new Font("Segoe UI", 9F);
+        lnkWebsite.LinkColor = Color.FromArgb(180, 160, 100);
+        lnkWebsite.ActiveLinkColor = Color.FromArgb(200, 180, 120);
+        lnkWebsite.VisitedLinkColor = Color.FromArgb(180, 160, 100);
+        lnkWebsite.BackColor = Color.Transparent;
+        lnkWebsite.Location = new Point(150, 54);
+        lnkWebsite.Text = "Website";
+        lnkWebsite.LinkClicked += lnkWebsite_LinkClicked;
+        panelFooter.Controls.Add(lnkWebsite);
 
         // Music mute toggle (top-left)
         lblMute.Anchor = AnchorStyles.Left | AnchorStyles.Top;
