@@ -99,10 +99,10 @@ namespace UoDangerLauncher
         async Task SetButtonTextFromVersionAsync()
         {
             string localVersion = File.Exists(localVersionFile) ? File.ReadAllText(localVersionFile).Trim() : "";
-            if (!Directory.Exists(clientFolder))
+            if (!Directory.Exists(clientFolder) || !File.Exists(localVersionFile))
             {
-                _btnPlayDefaultText = "Play";
-                btnPlay.Text = "Play";
+                _btnPlayDefaultText = "Download";
+                btnPlay.Text = "Download";
                 return;
             }
             try
