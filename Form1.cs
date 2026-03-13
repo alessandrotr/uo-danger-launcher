@@ -37,6 +37,9 @@ namespace UoDangerLauncher
         bool _musicMuted;
         string? _musicTempPath;
 
+        static readonly string SettingsFile = Path.Combine(
+            AppDomain.CurrentDomain.BaseDirectory, "launcher_settings.txt");
+
         public Form1()
         {
             InitializeComponent();
@@ -211,6 +214,26 @@ namespace UoDangerLauncher
         [DllImport("winmm.dll", CharSet = CharSet.Unicode)]
         static extern int mciSendString(string command, StringBuilder? buffer, int bufferSize, IntPtr callback);
 
+        bool LoadMuteSetting()
+        {
+            try
+            {
+                if (File.Exists(SettingsFile))
+                {
+                    string content = File.ReadAllText(SettingsFile).Trim();
+                    return string.Equals(content, "muted", StringComparison.OrdinalIgnoreCase);
+                }
+            }
+            catch { }
+            return false;
+        }
+
+        void SaveMuteSetting(bool muted)
+        {
+            try { File.WriteAllText(SettingsFile, muted ? "muted" : "unmuted"); }
+            catch { }
+        }
+
         void StartMusic()
         {
             try
@@ -222,13 +245,16 @@ namespace UoDangerLauncher
                 using (var fs = new FileStream(_musicTempPath, FileMode.Create, FileAccess.Write))
                     stream.CopyTo(fs);
 
+                bool wasMuted = LoadMuteSetting();
+
                 mciSendString($"open \"{_musicTempPath}\" type mpegvideo alias bgmusic", null, 0, IntPtr.Zero);
                 mciSendString("play bgmusic repeat", null, 0, IntPtr.Zero);
-                mciSendString("setaudio bgmusic volume to 300", null, 0, IntPtr.Zero);
+                mciSendString($"setaudio bgmusic volume to {(wasMuted ? 0 : 300)}", null, 0, IntPtr.Zero);
                 _musicPlaying = true;
-                _musicMuted = false;
+                _musicMuted = wasMuted;
 
-                lblMute.Text = "Sound: ON";
+                lblMute.Text = wasMuted ? "Sound: OFF" : "Sound: ON";
+                lblMute.ForeColor = wasMuted ? Color.FromArgb(80, 80, 85) : Color.FromArgb(140, 140, 145);
                 lblMute.Visible = true;
                 PositionMuteLabel();
             }
@@ -252,6 +278,7 @@ namespace UoDangerLauncher
         {
             if (!_musicPlaying) return;
             _musicMuted = !_musicMuted;
+            SaveMuteSetting(_musicMuted);
             if (_musicMuted)
             {
                 mciSendString("setaudio bgmusic volume to 0", null, 0, IntPtr.Zero);
