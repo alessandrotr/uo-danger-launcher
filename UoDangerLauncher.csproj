@@ -17,6 +17,7 @@
     <EmbeddedResource Include="logo.png" />
     <EmbeddedResource Include="logo.ico" />
     <EmbeddedResource Include="hero-home.webp" />
+    <EmbeddedResource Include="music.mp3" Condition="Exists('music.mp3')" />
   </ItemGroup>
 
 </Project>

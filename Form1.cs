@@ -5,8 +5,10 @@ using System.Drawing.Drawing2D;
 using System.IO;
 using System.IO.Compression;
 using System.Net.Http;
+using System.Net.Sockets;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using SixLabors.ImageSharp.Formats.Png;
@@ -22,32 +24,93 @@ namespace UoDangerLauncher
 
         const string ServerIP = "51.68.191.126";
         const string ServerPort = "2593";
+        const string DiscordInviteUrl = "https://discord.gg/9zsZDuMK6c";
 
         static readonly System.Drawing.Color ButtonColorNormal = System.Drawing.Color.FromArgb(201, 162, 39);
         static readonly System.Drawing.Color ButtonColorDisabled = System.Drawing.Color.FromArgb(160, 130, 35);
         string _btnPlayDefaultText = "Play";
 
         System.Drawing.Image? _backgroundImage;
-        const int OverlayAlpha = 210; // 0–255; higher = darker overlay, image barely visible
+        const int OverlayAlpha = 210;
+
+        bool _musicPlaying;
+        bool _musicMuted;
+        string? _musicTempPath;
 
         public Form1()
         {
             InitializeComponent();
-            Resize += (s, e) => { CenterLayout(); PositionVersionLabel(); };
+            Resize += (s, e) => { CenterLayout(); PositionVersionLabel(); PositionMuteLabel(); PositionServerStatus(); };
         }
 
         const int LogoMaxHeight = 260;
         const int LogoTopMargin = 50;
+        const int TitleBarHeight = 34;
+
+        // ═══════════════════════════════════════════════════════════════
+        //  Custom window chrome
+        // ═══════════════════════════════════════════════════════════════
+
+        protected override void OnHandleCreated(EventArgs e)
+        {
+            base.OnHandleCreated(e);
+            // Add DWM shadow to borderless window
+            try
+            {
+                var margins = new MARGINS { left = 1, right = 1, top = 1, bottom = 1 };
+                DwmExtendFrameIntoClientArea(Handle, ref margins);
+            }
+            catch { }
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        struct MARGINS { public int left, right, top, bottom; }
+
+        [DllImport("dwmapi.dll")]
+        static extern int DwmExtendFrameIntoClientArea(IntPtr hWnd, ref MARGINS margins);
+
+        protected override void WndProc(ref Message m)
+        {
+            const int WM_NCHITTEST = 0x84;
+            const int HTCAPTION = 2;
+
+            if (m.Msg == WM_NCHITTEST)
+            {
+                var pt = PointToClient(new Point((short)(m.LParam.ToInt32() & 0xFFFF), (short)(m.LParam.ToInt32() >> 16)));
+                // Title bar drag area (top pixels, but not over close/minimize buttons)
+                if (pt.Y < TitleBarHeight && pt.X < ClientSize.Width - 70)
+                {
+                    m.Result = (IntPtr)HTCAPTION;
+                    return;
+                }
+            }
+            base.WndProc(ref m);
+        }
+
+        void btnClose_Click(object? sender, EventArgs e) => Close();
+        void btnMinimize_Click(object? sender, EventArgs e) => WindowState = FormWindowState.Minimized;
+
+        // ═══════════════════════════════════════════════════════════════
+        //  Init / Load
+        // ═══════════════════════════════════════════════════════════════
 
         protected override void OnLoad(EventArgs e)
         {
             base.OnLoad(e);
-            TrySetBlackTitleBarAndBorders(Handle);
             LoadBackground();
             LoadLogo();
             LoadIcon();
             CenterLayout();
+            SetupWindowButtonHovers();
             _ = SetButtonTextFromVersionAsync();
+            _ = CheckServerStatusLoop();
+            StartMusic();
+        }
+
+        protected override void OnFormClosed(FormClosedEventArgs e)
+        {
+            StopMusic();
+            base.OnFormClosed(e);
         }
 
         void LoadIcon()
@@ -58,24 +121,7 @@ namespace UoDangerLauncher
                 if (stream == null) return;
                 this.Icon = new Icon(stream);
             }
-            catch { /* ignore */ }
-        }
-
-        static void TrySetBlackTitleBarAndBorders(IntPtr hwnd)
-        {
-            try
-            {
-                if (hwnd == IntPtr.Zero) return;
-                // Windows 11: caption and border color (0xFF000000 = black)
-                const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
-                const int DWMWA_CAPTION_COLOR = 35;
-                const int DWMWA_BORDER_COLOR = 34;
-                uint black = 0xFF_00_00_00;
-                _ = DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref black, sizeof(uint));
-                _ = DwmSetWindowAttribute(hwnd, DWMWA_CAPTION_COLOR, ref black, sizeof(uint));
-                _ = DwmSetWindowAttribute(hwnd, DWMWA_BORDER_COLOR, ref black, sizeof(uint));
-            }
-            catch { /* ignore on older Windows */ }
+            catch { }
         }
 
         [DllImport("dwmapi.dll")]
@@ -93,8 +139,137 @@ namespace UoDangerLauncher
                 ms.Position = 0;
                 _backgroundImage = System.Drawing.Image.FromStream(ms, false);
             }
-            catch { /* ignore */ }
+            catch { }
         }
+
+        void SetupWindowButtonHovers()
+        {
+            SetupHoverEffect(btnClose, Color.FromArgb(200, 60, 60));
+            SetupHoverEffect(btnMinimize, Color.FromArgb(80, 80, 85));
+        }
+
+        static void SetupHoverEffect(Label lbl, Color hoverColor)
+        {
+            lbl.MouseEnter += (s, e) => lbl.ForeColor = Color.White;
+            lbl.MouseLeave += (s, e) => lbl.ForeColor = Color.FromArgb(160, 160, 165);
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        //  Server status indicator
+        // ═══════════════════════════════════════════════════════════════
+
+        async Task CheckServerStatusLoop()
+        {
+            while (!IsDisposed)
+            {
+                bool online = await CheckServerOnline();
+                if (IsDisposed) break;
+                lblServerStatus.ForeColor = online
+                    ? Color.FromArgb(80, 200, 80)
+                    : Color.FromArgb(200, 80, 80);
+                lblServerStatus.Text = online ? "\u25CF Online" : "\u25CF Offline";
+                PositionServerStatus();
+                await Task.Delay(30_000);
+            }
+        }
+
+        static async Task<bool> CheckServerOnline()
+        {
+            try
+            {
+                using var tcp = new TcpClient();
+                var connectTask = tcp.ConnectAsync(ServerIP, int.Parse(ServerPort));
+                if (await Task.WhenAny(connectTask, Task.Delay(3000)) == connectTask && tcp.Connected)
+                    return true;
+            }
+            catch { }
+            return false;
+        }
+
+        void PositionServerStatus()
+        {
+            if (lblServerStatus == null || panelFooter == null) return;
+            var sz = TextRenderer.MeasureText(lblServerStatus.Text, lblServerStatus.Font);
+            lblServerStatus.Location = new Point(
+                panelFooter.ClientSize.Width - panelFooter.Padding.Right - sz.Width,
+                6);
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        //  Background music (mciSendString)
+        // ═══════════════════════════════════════════════════════════════
+
+        [DllImport("winmm.dll", CharSet = CharSet.Unicode)]
+        static extern int mciSendString(string command, StringBuilder? buffer, int bufferSize, IntPtr callback);
+
+        void StartMusic()
+        {
+            try
+            {
+                using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("UoDangerLauncher.music.mp3");
+                if (stream == null) return;
+
+                _musicTempPath = Path.Combine(Path.GetTempPath(), "uodanger_music.mp3");
+                using (var fs = new FileStream(_musicTempPath, FileMode.Create, FileAccess.Write))
+                    stream.CopyTo(fs);
+
+                mciSendString($"open \"{_musicTempPath}\" type mpegvideo alias bgmusic", null, 0, IntPtr.Zero);
+                mciSendString("play bgmusic repeat", null, 0, IntPtr.Zero);
+                mciSendString("setaudio bgmusic volume to 300", null, 0, IntPtr.Zero);
+                _musicPlaying = true;
+                _musicMuted = false;
+
+                lblMute.Text = "Sound: ON";
+                lblMute.Visible = true;
+                PositionMuteLabel();
+            }
+            catch { }
+        }
+
+        void StopMusic()
+        {
+            if (!_musicPlaying) return;
+            try
+            {
+                mciSendString("stop bgmusic", null, 0, IntPtr.Zero);
+                mciSendString("close bgmusic", null, 0, IntPtr.Zero);
+            }
+            catch { }
+            try { if (_musicTempPath != null && File.Exists(_musicTempPath)) File.Delete(_musicTempPath); }
+            catch { }
+        }
+
+        void lblMute_Click(object? sender, EventArgs e)
+        {
+            if (!_musicPlaying) return;
+            _musicMuted = !_musicMuted;
+            if (_musicMuted)
+            {
+                mciSendString("setaudio bgmusic volume to 0", null, 0, IntPtr.Zero);
+                lblMute.Text = "Sound: OFF";
+                lblMute.ForeColor = Color.FromArgb(80, 80, 85);
+            }
+            else
+            {
+                mciSendString("setaudio bgmusic volume to 300", null, 0, IntPtr.Zero);
+                lblMute.Text = "Sound: ON";
+                lblMute.ForeColor = Color.FromArgb(120, 120, 125);
+            }
+            PositionMuteLabel();
+        }
+
+        void PositionMuteLabel()
+        {
+            if (lblMute == null || panelFooter == null) return;
+            var sz = TextRenderer.MeasureText(lblMute.Text, lblMute.Font);
+            lblMute.Location = new Point(
+                panelFooter.ClientSize.Width - panelFooter.Padding.Right - sz.Width,
+                54);
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        //  Version check / button state
+        // ═══════════════════════════════════════════════════════════════
 
         async Task SetButtonTextFromVersionAsync()
         {
@@ -140,6 +315,10 @@ namespace UoDangerLauncher
                 30);
         }
 
+        // ═══════════════════════════════════════════════════════════════
+        //  Layout
+        // ═══════════════════════════════════════════════════════════════
+
         void LoadLogo()
         {
             try
@@ -159,7 +338,7 @@ namespace UoDangerLauncher
                     picLogo.Size = new Size(w, h);
                 }
             }
-            catch { /* ignore */ }
+            catch { }
         }
 
         void CenterLayout()
@@ -197,6 +376,10 @@ namespace UoDangerLauncher
                 e.Graphics.FillRectangle(brush, r);
             }
         }
+
+        // ═══════════════════════════════════════════════════════════════
+        //  Download / Update / Launch
+        // ═══════════════════════════════════════════════════════════════
 
         void SetLoadingState(string text)
         {
@@ -250,7 +433,6 @@ namespace UoDangerLauncher
                 return false;
             }
 
-            // Format: "<version> <client_zip_url> <update_zip_url>"
             string[] parts = remoteContent.Split(new[] { ' ', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length < 3)
             {
@@ -262,7 +444,6 @@ namespace UoDangerLauncher
             string clientZipUrl = parts[1].Trim();
             string updateZipUrl = parts[2].Trim();
 
-            // Already up-to-date
             if (clientExists && hasLocalVersion && string.Equals(localVersion, remoteVersion, StringComparison.OrdinalIgnoreCase))
             {
                 lblStatus.Text = "Client up-to-date.";
@@ -273,7 +454,6 @@ namespace UoDangerLauncher
 
             if (isFreshInstall)
             {
-                // ── Fresh install: download and extract the full client.zip ──
                 SetLoadingState("Downloading...");
                 lblStatus.Text = "Downloading game for the first time...";
                 lblMessage.Text = "The game is being downloaded. Once installed, new files and folders will appear next to the launcher.\nPlease do not move, rename, or delete any of them.";
@@ -309,14 +489,12 @@ namespace UoDangerLauncher
                     Directory.Move(tempExtract, clientFolder);
                 }
 
-                // Wipe Profiles after fresh install so no saved credentials are shipped
                 string profilesDir = Path.Combine(clientFolder, "ClassicUO", "Data", "Profiles");
                 if (Directory.Exists(profilesDir))
                     Directory.Delete(profilesDir, true);
             }
             else
             {
-                // ── Incremental update: replace Client\ClassicUO\Data except Profiles ──
                 SetLoadingState("Downloading...");
                 lblStatus.Text = "New version found. Downloading update...";
                 lblMessage.Text = "A new update is being installed to improve your game experience.\nYour settings and profiles will be preserved.";
@@ -365,40 +543,29 @@ namespace UoDangerLauncher
 
             foreach (var entry in entries)
             {
-                // Normalize separators to forward slash for consistent matching
                 string fullName = entry.FullName.Replace('\\', '/');
-
-                // Find "ClassicUO/Data/" anywhere in the path and use everything after it
                 int idx = fullName.IndexOf(dataMarker, StringComparison.OrdinalIgnoreCase);
                 string relativePath;
                 if (idx >= 0)
-                {
                     relativePath = fullName.Substring(idx + dataMarker.Length);
-                }
                 else
                 {
-                    // No ClassicUO/Data/ prefix — strip the top-level wrapper folder (e.g. "update/")
                     int slash = fullName.IndexOf('/');
                     relativePath = slash >= 0 ? fullName.Substring(slash + 1) : fullName;
                 }
 
                 if (string.IsNullOrEmpty(relativePath)) { current++; continue; }
 
-                // Skip Profiles folder
                 string firstSegment = relativePath.Split('/')[0];
                 if (string.Equals(firstSegment, "Profiles", StringComparison.OrdinalIgnoreCase)) { current++; continue; }
 
                 string destPath = Path.GetFullPath(Path.Combine(dataFolder, relativePath.Replace('/', Path.DirectorySeparatorChar)));
-
-                // Security: ensure destination is inside dataFolder
                 if (!destPath.StartsWith(Path.GetFullPath(dataFolder) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
                 { current++; continue; }
 
                 Directory.CreateDirectory(Path.GetDirectoryName(destPath)!);
-
                 if (File.Exists(destPath))
                     File.SetAttributes(destPath, FileAttributes.Normal);
-
                 entry.ExtractToFile(destPath, overwrite: true);
 
                 current++;
@@ -418,15 +585,8 @@ namespace UoDangerLauncher
             {
                 if (progressBar.IsDisposed) return;
                 int pct = (int)((current * 100L) / total);
-                try
-                {
-                    progressBar.Invoke(() =>
-                    {
-                        progressBar.Value = Math.Min(100, pct);
-                        progressBar.Refresh();
-                    });
-                }
-                catch { /* form closing */ }
+                try { progressBar.Invoke(() => { progressBar.Value = Math.Min(100, pct); progressBar.Refresh(); }); }
+                catch { }
             }
             foreach (var entry in entries)
             {
@@ -480,7 +640,6 @@ namespace UoDangerLauncher
                     int percent = (int)((totalRead * 100L) / totalBytes);
                     progressBar.Value = Math.Min(100, percent);
 
-                    // Calculate speed every 500ms to avoid flickering
                     double elapsed = speedTimer.Elapsed.TotalSeconds;
                     if (elapsed >= 0.5)
                     {
@@ -496,8 +655,8 @@ namespace UoDangerLauncher
                         long remaining = totalBytes - totalRead;
                         int seconds = (int)(remaining / lastSpeed);
                         etaText = seconds >= 60
-                            ? $" — {seconds / 60}m {seconds % 60}s left"
-                            : $" — {seconds}s left";
+                            ? $" \u2014 {seconds / 60}m {seconds % 60}s left"
+                            : $" \u2014 {seconds}s left";
                     }
 
                     lblStatus.Text = $"{statusPrefix}... {percent}%{(speedText.Length > 0 ? $"  ({speedText}{etaText})" : "")}";
@@ -515,8 +674,6 @@ namespace UoDangerLauncher
                 return $"{bytesPerSec / 1024:F0} KB/s";
             return $"{bytesPerSec:F0} B/s";
         }
-
-        const string DiscordInviteUrl = "https://discord.gg/9zsZDuMK6c";
 
         void lnkDiscord_LinkClicked(object? sender, LinkLabelLinkClickedEventArgs e)
         {

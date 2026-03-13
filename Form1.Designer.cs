@@ -13,6 +13,10 @@ partial class Form1
     private System.Windows.Forms.Label lblMessage;
     private System.Windows.Forms.Label lblVersion;
     private System.Windows.Forms.LinkLabel lnkDiscord;
+    private System.Windows.Forms.Label btnClose;
+    private System.Windows.Forms.Label btnMinimize;
+    private System.Windows.Forms.Label lblServerStatus;
+    private System.Windows.Forms.Label lblMute;
 
     protected override void Dispose(bool disposing)
     {
@@ -34,6 +38,10 @@ partial class Form1
         lblStatus = new Label();
         lblVersion = new Label();
         lnkDiscord = new LinkLabel();
+        btnClose = new Label();
+        btnMinimize = new Label();
+        lblServerStatus = new Label();
+        lblMute = new Label();
 
         panelHeader.SuspendLayout();
         ((System.ComponentModel.ISupportInitialize)picLogo).BeginInit();
@@ -41,8 +49,10 @@ partial class Form1
         panelFooter.SuspendLayout();
         SuspendLayout();
 
-        // —— Header (logo only, no border, centered in code) ——
+        // —— Header (logo + window buttons) ——
         panelHeader.BackColor = Color.Transparent;
+        panelHeader.Controls.Add(btnClose);
+        panelHeader.Controls.Add(btnMinimize);
         panelHeader.Controls.Add(picLogo);
         panelHeader.Dock = DockStyle.Top;
         panelHeader.Size = new Size(800, 320);
@@ -54,6 +64,32 @@ partial class Form1
         picLogo.Size = new Size(200, 100);
         picLogo.TabIndex = 0;
         picLogo.TabStop = false;
+
+        // Window close button
+        btnClose.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+        btnClose.AutoSize = false;
+        btnClose.BackColor = Color.Transparent;
+        btnClose.Cursor = Cursors.Hand;
+        btnClose.Font = new Font("Segoe UI", 12F);
+        btnClose.ForeColor = Color.FromArgb(160, 160, 165);
+        btnClose.Location = new Point(762, 4);
+        btnClose.Size = new Size(32, 26);
+        btnClose.Text = "\u2715";
+        btnClose.TextAlign = ContentAlignment.MiddleCenter;
+        btnClose.Click += btnClose_Click;
+
+        // Window minimize button
+        btnMinimize.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+        btnMinimize.AutoSize = false;
+        btnMinimize.BackColor = Color.Transparent;
+        btnMinimize.Cursor = Cursors.Hand;
+        btnMinimize.Font = new Font("Segoe UI", 12F);
+        btnMinimize.ForeColor = Color.FromArgb(160, 160, 165);
+        btnMinimize.Location = new Point(730, 4);
+        btnMinimize.Size = new Size(32, 26);
+        btnMinimize.Text = "\u2014";
+        btnMinimize.TextAlign = ContentAlignment.MiddleCenter;
+        btnMinimize.Click += btnMinimize_Click;
 
         // —— Center (button + message, centered in code) ——
         lblMessage = new Label();
@@ -90,7 +126,7 @@ partial class Form1
         btnPlay.UseVisualStyleBackColor = false;
         btnPlay.Click += btnPlay_Click;
 
-        // —— Footer (progress bar on row 0, status text on row 1, version bottom-right) ——
+        // —— Footer ——
         panelFooter.BackColor = Color.Transparent;
         panelFooter.Dock = DockStyle.Bottom;
         panelFooter.Size = new Size(800, 82);
@@ -104,6 +140,16 @@ partial class Form1
         progressBar.Value = 0;
         progressBar.Visible = true;
         panelFooter.Controls.Add(progressBar);
+
+        // Server status indicator (right of progress bar)
+        lblServerStatus.Anchor = AnchorStyles.Right | AnchorStyles.Top;
+        lblServerStatus.AutoSize = true;
+        lblServerStatus.Font = new Font("Segoe UI", 8.5F);
+        lblServerStatus.ForeColor = Color.FromArgb(100, 100, 105);
+        lblServerStatus.BackColor = Color.Transparent;
+        lblServerStatus.Location = new Point(680, 28);
+        lblServerStatus.Text = "";
+        panelFooter.Controls.Add(lblServerStatus);
 
         lblStatus.Anchor = AnchorStyles.Left | AnchorStyles.Top;
         lblStatus.AutoSize = true;
@@ -135,15 +181,26 @@ partial class Form1
         lnkDiscord.LinkClicked += lnkDiscord_LinkClicked;
         panelFooter.Controls.Add(lnkDiscord);
 
+        // Music mute toggle
+        lblMute.Anchor = AnchorStyles.Right | AnchorStyles.Top;
+        lblMute.AutoSize = true;
+        lblMute.Font = new Font("Segoe UI", 9F);
+        lblMute.ForeColor = Color.FromArgb(120, 120, 125);
+        lblMute.BackColor = Color.Transparent;
+        lblMute.Cursor = Cursors.Hand;
+        lblMute.Location = new Point(700, 54);
+        lblMute.Text = "";
+        lblMute.Visible = false;
+        lblMute.Click += lblMute_Click;
+        panelFooter.Controls.Add(lblMute);
+
         // —— Form ——
         AutoScaleDimensions = new SizeF(96F, 96F);
         AutoScaleMode = AutoScaleMode.Dpi;
         BackColor = Color.Black;
         ClientSize = new Size(800, 600);
         DoubleBuffered = true;
-        FormBorderStyle = FormBorderStyle.FixedSingle;
-        MaximizeBox = false;
-        MinimumSize = new Size(816, 639);
+        FormBorderStyle = FormBorderStyle.None;
         StartPosition = FormStartPosition.CenterScreen;
         Text = "UO Danger — Launcher";
 
