@@ -44,7 +44,7 @@ namespace UoDangerLauncher
         }
 
         const int LogoMaxHeight = 260;
-        const int LogoTopMargin = 50;
+        const int LogoTopMargin = 70;
         const int TitleBarHeight = 34;
 
         // ═══════════════════════════════════════════════════════════════
@@ -201,7 +201,7 @@ namespace UoDangerLauncher
             var sz = TextRenderer.MeasureText(lblServerStatus.Text, lblServerStatus.Font);
             lblServerStatus.Location = new Point(
                 panelFooter.ClientSize.Width - panelFooter.Padding.Right - sz.Width,
-                6);
+                54);
         }
 
         // ═══════════════════════════════════════════════════════════════
