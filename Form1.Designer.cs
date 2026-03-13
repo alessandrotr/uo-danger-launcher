@@ -6,11 +6,12 @@ partial class Form1
     private System.Windows.Forms.Panel panelHeader;
     private System.Windows.Forms.PictureBox picLogo;
     private System.Windows.Forms.Panel panelCenter;
-    private System.Windows.Forms.Button btnPlay;
-    private System.Windows.Forms.ProgressBar progressBar;
+    private GoldButton btnPlay;
+    private GoldProgressBar progressBar;
     private System.Windows.Forms.Panel panelFooter;
     private System.Windows.Forms.Label lblStatus;
     private System.Windows.Forms.Label lblMessage;
+    private System.Windows.Forms.Label lblVersion;
 
     protected override void Dispose(bool disposing)
     {
@@ -26,10 +27,11 @@ partial class Form1
         panelHeader = new Panel();
         picLogo = new PictureBox();
         panelCenter = new Panel();
-        btnPlay = new Button();
-        progressBar = new ProgressBar();
+        btnPlay = new GoldButton();
+        progressBar = new GoldProgressBar();
         panelFooter = new Panel();
         lblStatus = new Label();
+        lblVersion = new Label();
 
         panelHeader.SuspendLayout();
         ((System.ComponentModel.ISupportInitialize)picLogo).BeginInit();
@@ -86,7 +88,7 @@ partial class Form1
         btnPlay.UseVisualStyleBackColor = false;
         btnPlay.Click += btnPlay_Click;
 
-        // —— Footer (progress bar on row 0, status text on row 1) ——
+        // —— Footer (progress bar on row 0, status text on row 1, version bottom-right) ——
         panelFooter.BackColor = Color.Transparent;
         panelFooter.Dock = DockStyle.Bottom;
         panelFooter.Size = new Size(800, 72);
@@ -109,6 +111,15 @@ partial class Form1
         lblStatus.Text = "Ready";
         lblStatus.BackColor = Color.Transparent;
         panelFooter.Controls.Add(lblStatus);
+
+        lblVersion.Anchor = AnchorStyles.Right | AnchorStyles.Top;
+        lblVersion.AutoSize = true;
+        lblVersion.Font = new Font("Segoe UI", 9F);
+        lblVersion.ForeColor = Color.FromArgb(90, 90, 95);
+        lblVersion.Location = new Point(700, 36);
+        lblVersion.Text = "";
+        lblVersion.BackColor = Color.Transparent;
+        panelFooter.Controls.Add(lblVersion);
 
         // —— Form ——
         AutoScaleDimensions = new SizeF(96F, 96F);

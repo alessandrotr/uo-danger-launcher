@@ -33,7 +33,7 @@ namespace UoDangerLauncher
         public Form1()
         {
             InitializeComponent();
-            Resize += (s, e) => CenterLayout();
+            Resize += (s, e) => { CenterLayout(); PositionVersionLabel(); };
         }
 
         const int LogoMaxHeight = 260;
@@ -47,6 +47,17 @@ namespace UoDangerLauncher
             LoadLogo();
             LoadIcon();
             CenterLayout();
+
+            // Fade-in animation
+            Opacity = 0;
+            var fadeTimer = new Timer { Interval = 16 };
+            fadeTimer.Tick += (s, ev) =>
+            {
+                Opacity += 0.05;
+                if (Opacity >= 1.0) { Opacity = 1.0; fadeTimer.Stop(); fadeTimer.Dispose(); }
+            };
+            fadeTimer.Start();
+
             _ = SetButtonTextFromVersionAsync();
         }
 
@@ -103,8 +114,13 @@ namespace UoDangerLauncher
             {
                 _btnPlayDefaultText = "Download";
                 btnPlay.Text = "Download";
+                lblVersion.Text = "";
                 return;
             }
+
+            lblVersion.Text = $"v{localVersion}";
+            PositionVersionLabel();
+
             try
             {
                 using var http = new HttpClient();
@@ -124,6 +140,15 @@ namespace UoDangerLauncher
                 _btnPlayDefaultText = "Play";
                 btnPlay.Text = "Play";
             }
+        }
+
+        void PositionVersionLabel()
+        {
+            if (lblVersion == null || panelFooter == null) return;
+            var sz = TextRenderer.MeasureText(lblVersion.Text, lblVersion.Font);
+            lblVersion.Location = new Point(
+                panelFooter.ClientSize.Width - panelFooter.Padding.Right - sz.Width,
+                36);
         }
 
         void LoadLogo()
@@ -333,6 +358,8 @@ namespace UoDangerLauncher
             }
 
             File.WriteAllText(localVersionFile, remoteVersion);
+            lblVersion.Text = $"v{remoteVersion}";
+            PositionVersionLabel();
             lblStatus.Text = "Ready.";
             lblStatus.Refresh();
             return true;
