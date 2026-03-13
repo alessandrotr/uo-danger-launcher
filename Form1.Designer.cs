@@ -96,6 +96,7 @@ partial class Form1
         panelCenter.BackColor = Color.Transparent;
         panelCenter.Controls.Add(btnPlay);
         panelCenter.Controls.Add(lblMessage);
+        panelCenter.Controls.Add(lblServerStatus);
         panelCenter.Dock = DockStyle.Fill;
         panelCenter.Size = new Size(800, 262);
         panelCenter.MinimumSize = new Size(400, 200);
@@ -141,15 +142,13 @@ partial class Form1
         progressBar.Visible = true;
         panelFooter.Controls.Add(progressBar);
 
-        // Server status indicator (bottom-right, same row as Discord)
-        lblServerStatus.Anchor = AnchorStyles.Right | AnchorStyles.Top;
+        // Server status indicator (above button, centered)
+        lblServerStatus.Anchor = AnchorStyles.None;
         lblServerStatus.AutoSize = true;
         lblServerStatus.Font = new Font("Segoe UI", 9F);
         lblServerStatus.ForeColor = Color.FromArgb(100, 100, 105);
         lblServerStatus.BackColor = Color.Transparent;
-        lblServerStatus.Location = new Point(680, 54);
         lblServerStatus.Text = "";
-        panelFooter.Controls.Add(lblServerStatus);
 
         lblStatus.Anchor = AnchorStyles.Left | AnchorStyles.Top;
         lblStatus.AutoSize = true;

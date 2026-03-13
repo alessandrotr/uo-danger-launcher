@@ -283,11 +283,12 @@ namespace UoDangerLauncher
 
         void PositionServerStatus()
         {
-            if (lblServerStatus == null || panelFooter == null) return;
+            if (lblServerStatus == null || panelCenter == null || !panelCenter.IsHandleCreated) return;
             var sz = TextRenderer.MeasureText(lblServerStatus.Text, lblServerStatus.Font);
+            int cw = panelCenter.ClientSize.Width;
             lblServerStatus.Location = new Point(
-                panelFooter.ClientSize.Width - panelFooter.Padding.Right - sz.Width,
-                54);
+                Math.Max(0, (cw - sz.Width) / 2),
+                btnPlay.Top - sz.Height - 8);
         }
 
         // ═══════════════════════════════════════════════════════════════
