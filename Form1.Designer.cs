@@ -141,13 +141,13 @@ partial class Form1
         progressBar.Visible = true;
         panelFooter.Controls.Add(progressBar);
 
-        // Server status indicator (bottom-right)
-        lblServerStatus.Anchor = AnchorStyles.Right | AnchorStyles.Bottom;
+        // Server status indicator (bottom-right, same row as Discord)
+        lblServerStatus.Anchor = AnchorStyles.Right | AnchorStyles.Top;
         lblServerStatus.AutoSize = true;
-        lblServerStatus.Font = new Font("Segoe UI", 8F);
+        lblServerStatus.Font = new Font("Segoe UI", 9F);
         lblServerStatus.ForeColor = Color.FromArgb(100, 100, 105);
         lblServerStatus.BackColor = Color.Transparent;
-        lblServerStatus.Location = new Point(680, 64);
+        lblServerStatus.Location = new Point(680, 54);
         lblServerStatus.Text = "";
         panelFooter.Controls.Add(lblServerStatus);
 
