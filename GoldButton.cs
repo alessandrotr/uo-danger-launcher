@@ -83,29 +83,13 @@ namespace UoDangerLauncher
             g.SmoothingMode = SmoothingMode.AntiAlias;
             g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
 
-            const int radius = 8;
+            const int radius = 14;
             var rect = new Rectangle(0, 0, Width - 1, Height - 1);
 
-            // Outer glow when hovering
-            if (_glowIntensity > 0.01f && Enabled)
-            {
-                int glowSize = (int)(10 * _glowIntensity);
-                var glowRect = new Rectangle(
-                    -glowSize, -glowSize,
-                    Width + glowSize * 2, Height + glowSize * 2);
-                if (glowRect.Width > 0 && glowRect.Height > 0)
-                {
-                    using var glowPath = RoundedRect(glowRect, radius + glowSize);
-                    using var glowBrush = new SolidBrush(
-                        Color.FromArgb((int)(35 * _glowIntensity), 212, 175, 55));
-                    g.FillPath(glowBrush, glowPath);
-                }
-            }
-
-            // Button body
+            // Button body — subtle lighten on hover
             Color baseColor = Enabled ? BackColor : Color.FromArgb(100, 85, 25);
             Color bodyColor = Enabled
-                ? LerpColor(baseColor, Color.FromArgb(230, 195, 70), _glowIntensity * 0.3f)
+                ? LerpColor(baseColor, Color.FromArgb(222, 185, 60), _glowIntensity * 0.2f)
                 : baseColor;
             if (_pressing && Enabled)
                 bodyColor = LerpColor(bodyColor, Color.FromArgb(160, 130, 25), 0.3f);

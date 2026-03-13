@@ -71,6 +71,9 @@ namespace UoDangerLauncher
             var g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
 
+            // Clear with parent background to avoid white corners
+            g.Clear(Parent?.BackColor ?? Color.Black);
+
             int radius = Height / 2;
             var bounds = new Rectangle(0, 0, Width, Height);
 

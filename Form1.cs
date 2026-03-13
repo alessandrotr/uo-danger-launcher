@@ -47,21 +47,7 @@ namespace UoDangerLauncher
             LoadLogo();
             LoadIcon();
             CenterLayout();
-            Opacity = 0;
             _ = SetButtonTextFromVersionAsync();
-        }
-
-        protected override void OnShown(EventArgs e)
-        {
-            base.OnShown(e);
-            // Fade-in animation
-            var fadeTimer = new System.Windows.Forms.Timer { Interval = 16 };
-            fadeTimer.Tick += (s, ev) =>
-            {
-                Opacity += 0.05;
-                if (Opacity >= 1.0) { Opacity = 1.0; fadeTimer.Stop(); fadeTimer.Dispose(); }
-            };
-            fadeTimer.Start();
         }
 
         void LoadIcon()
