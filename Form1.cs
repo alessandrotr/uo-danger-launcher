@@ -54,7 +54,7 @@ namespace UoDangerLauncher
         //  Custom window chrome
         // ═══════════════════════════════════════════════════════════════
 
-        // Block maximize for this fixed-size window
+        // Block maximize + suppress background erase to prevent flicker
         protected override void WndProc(ref Message m)
         {
             const int WM_SYSCOMMAND = 0x0112;
@@ -62,26 +62,15 @@ namespace UoDangerLauncher
             if (m.Msg == WM_SYSCOMMAND && (m.WParam.ToInt32() & 0xFFF0) == SC_MAXIMIZE)
                 return;
 
+            const int WM_ERASEBKGND = 0x0014;
+            if (m.Msg == WM_ERASEBKGND)
+            {
+                m.Result = (IntPtr)1; // Tell Windows we handled it
+                return;
+            }
+
             base.WndProc(ref m);
         }
-
-        protected override void OnHandleCreated(EventArgs e)
-        {
-            base.OnHandleCreated(e);
-            // Add DWM shadow to borderless window
-            try
-            {
-                var margins = new MARGINS { left = 1, right = 1, top = 1, bottom = 1 };
-                DwmExtendFrameIntoClientArea(Handle, ref margins);
-            }
-            catch { }
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        struct MARGINS { public int left, right, top, bottom; }
-
-        [DllImport("dwmapi.dll")]
-        static extern int DwmExtendFrameIntoClientArea(IntPtr hWnd, ref MARGINS margins);
 
         [DllImport("user32.dll")]
         static extern int SendMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
@@ -147,8 +136,6 @@ namespace UoDangerLauncher
             catch { }
         }
 
-        [DllImport("dwmapi.dll")]
-        static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref uint value, int size);
 
         void LoadBackground()
         {
