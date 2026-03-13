@@ -209,7 +209,7 @@ partial class Form1
 
         // —— Form ——
         AutoScaleDimensions = new SizeF(96F, 96F);
-        AutoScaleMode = AutoScaleMode.Dpi;
+        AutoScaleMode = AutoScaleMode.None;
         BackColor = Color.Black;
         ClientSize = new Size(800, 600);
         DoubleBuffered = true;
