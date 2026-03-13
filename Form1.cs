@@ -184,9 +184,6 @@ namespace UoDangerLauncher
             lblServerStatus.ForeColor = Color.FromArgb(130, 130, 135);
             PositionServerStatus();
 
-            // Clean up leftover from previous self-update
-            try { string old = Application.ExecutablePath + ".old"; if (File.Exists(old)) File.Delete(old); } catch { }
-
             _ = CheckLauncherUpdateThenInit();
         }
 

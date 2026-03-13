@@ -10,6 +10,7 @@ static class Program
     {
         try
         {
+            CleanupUpdateLeftovers();
             ApplicationConfiguration.Initialize();
             Application.Run(new Form1());
         }
@@ -17,5 +18,18 @@ static class Program
         {
             System.Windows.Forms.MessageBox.Show(ex.ToString(), "Startup Error");
         }
+    }
+
+    static void CleanupUpdateLeftovers()
+    {
+        try
+        {
+            string exe = Application.ExecutablePath;
+            string old = exe + ".old";
+            string update = exe + ".update";
+            if (File.Exists(old)) File.Delete(old);
+            if (File.Exists(update)) File.Delete(update);
+        }
+        catch { }
     }    
 }
