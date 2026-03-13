@@ -95,10 +95,10 @@ partial class Form1
         panelFooter.Dock = DockStyle.Bottom;
         panelFooter.Size = new Size(800, 82);
         panelFooter.MinimumSize = new Size(400, 82);
-        panelFooter.Padding = new Padding(24, 10, 24, 10);
+        panelFooter.Padding = new Padding(24, 6, 24, 10);
 
         progressBar.Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top;
-        progressBar.Location = new Point(24, 10);
+        progressBar.Location = new Point(24, 6);
         progressBar.Size = new Size(752, 16);
         progressBar.Style = ProgressBarStyle.Continuous;
         progressBar.Value = 0;
@@ -109,7 +109,7 @@ partial class Form1
         lblStatus.AutoSize = true;
         lblStatus.Font = new Font("Segoe UI", 10F);
         lblStatus.ForeColor = Color.FromArgb(140, 140, 145);
-        lblStatus.Location = new Point(24, 34);
+        lblStatus.Location = new Point(24, 28);
         lblStatus.Text = "Ready";
         lblStatus.BackColor = Color.Transparent;
         panelFooter.Controls.Add(lblStatus);
@@ -118,7 +118,7 @@ partial class Form1
         lblVersion.AutoSize = true;
         lblVersion.Font = new Font("Segoe UI", 9F);
         lblVersion.ForeColor = Color.FromArgb(90, 90, 95);
-        lblVersion.Location = new Point(700, 36);
+        lblVersion.Location = new Point(700, 30);
         lblVersion.Text = "";
         lblVersion.BackColor = Color.Transparent;
         panelFooter.Controls.Add(lblVersion);
@@ -130,7 +130,7 @@ partial class Form1
         lnkDiscord.ActiveLinkColor = Color.FromArgb(134, 157, 238);
         lnkDiscord.VisitedLinkColor = Color.FromArgb(114, 137, 218);
         lnkDiscord.BackColor = Color.Transparent;
-        lnkDiscord.Location = new Point(24, 52);
+        lnkDiscord.Location = new Point(24, 54);
         lnkDiscord.Text = "Join our Discord";
         lnkDiscord.LinkClicked += lnkDiscord_LinkClicked;
         panelFooter.Controls.Add(lnkDiscord);

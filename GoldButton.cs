@@ -12,7 +12,7 @@ namespace UoDangerLauncher
         private readonly System.Windows.Forms.Timer _animTimer;
         private bool _hovering;
         private bool _pressing;
-        private const int Radius = 14;
+        private const int Radius = 22;
 
         public GoldButton()
         {

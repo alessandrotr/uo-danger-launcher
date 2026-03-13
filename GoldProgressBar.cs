@@ -62,7 +62,8 @@ namespace UoDangerLauncher
             SetStyle(
                 ControlStyles.UserPaint |
                 ControlStyles.AllPaintingInWmPaint |
-                ControlStyles.OptimizedDoubleBuffer, true);
+                ControlStyles.OptimizedDoubleBuffer |
+                ControlStyles.Opaque, true);
             Height = 16;
         }
 
