@@ -26,6 +26,9 @@ namespace UoDangerLauncher
         const string ServerPort = "2593";
         const string DiscordInviteUrl = "https://discord.gg/9zsZDuMK6c";
 
+        const string LauncherVersion = "1.0.0";
+        string remoteLauncherVersionUrl = "https://alessandrotr.github.io/uo-danger-client/launcher_version.txt";
+
         static readonly System.Drawing.Color ButtonColorNormal = System.Drawing.Color.FromArgb(201, 162, 39);
         static readonly System.Drawing.Color ButtonColorDisabled = System.Drawing.Color.FromArgb(160, 130, 35);
         string _btnPlayDefaultText = "Play";
@@ -47,7 +50,7 @@ namespace UoDangerLauncher
         }
 
         const int LogoMaxHeight = 260;
-        const int LogoTopMargin = 100;
+        const int LogoTopMargin = 120;
         const int TitleBarHeight = 34;
 
         // ═══════════════════════════════════════════════════════════════
@@ -107,9 +110,10 @@ namespace UoDangerLauncher
             lblServerStatus.ForeColor = Color.FromArgb(130, 130, 135);
             PositionServerStatus();
 
-            _ = SetButtonTextFromVersionAsync();
-            _ = CheckServerStatusLoop();
-            StartMusic();
+            // Clean up leftover from previous self-update
+            try { string old = Application.ExecutablePath + ".old"; if (File.Exists(old)) File.Delete(old); } catch { }
+
+            _ = CheckLauncherUpdateThenInit();
         }
 
         void SetupDrag()
@@ -168,32 +172,42 @@ namespace UoDangerLauncher
         //  Server status indicator
         // ═══════════════════════════════════════════════════════════════
 
+        ToolTip? _serverTooltip;
+
         async Task CheckServerStatusLoop()
         {
+            _serverTooltip ??= new ToolTip();
             while (!IsDisposed)
             {
-                bool online = await CheckServerOnline();
+                var (online, pingMs) = await CheckServerOnline();
                 if (IsDisposed) break;
                 lblServerStatus.ForeColor = online
                     ? Color.FromArgb(80, 200, 80)
                     : Color.FromArgb(200, 80, 80);
-                lblServerStatus.Text = online ? "\u25CF Online" : "\u25CF Offline";
+                lblServerStatus.Text = online ? $"\u25CF Online ({pingMs}ms)" : "\u25CF Offline";
+                _serverTooltip.SetToolTip(lblServerStatus, online
+                    ? $"Server: {ServerIP}:{ServerPort}\nPing: {pingMs}ms"
+                    : $"Server: {ServerIP}:{ServerPort}\nStatus: Unreachable");
                 PositionServerStatus();
                 await Task.Delay(30_000);
             }
         }
 
-        static async Task<bool> CheckServerOnline()
+        static async Task<(bool online, long pingMs)> CheckServerOnline()
         {
             try
             {
                 using var tcp = new TcpClient();
+                var sw = Stopwatch.StartNew();
                 var connectTask = tcp.ConnectAsync(ServerIP, int.Parse(ServerPort));
                 if (await Task.WhenAny(connectTask, Task.Delay(3000)) == connectTask && tcp.Connected)
-                    return true;
+                {
+                    sw.Stop();
+                    return (true, sw.ElapsedMilliseconds);
+                }
             }
             catch { }
-            return false;
+            return (false, 0);
         }
 
         void PositionServerStatus()
@@ -295,6 +309,94 @@ namespace UoDangerLauncher
         void PositionMuteLabel()
         {
             // Fixed top-left position in panelHeader, no repositioning needed
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        //  Launcher self-update
+        // ═══════════════════════════════════════════════════════════════
+
+        async Task CheckLauncherUpdateThenInit()
+        {
+            lblStatus.Text = "Checking for launcher updates...";
+            try
+            {
+                using var http = new HttpClient();
+                http.DefaultRequestHeaders.CacheControl = new System.Net.Http.Headers.CacheControlHeaderValue { NoCache = true };
+                string content = (await http.GetStringAsync(remoteLauncherVersionUrl + "?t=" + DateTime.UtcNow.Ticks)).Trim();
+                // Expected format: version download_url
+                var parts = content.Split(new[] { ' ', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length >= 2)
+                {
+                    string remoteVersion = parts[0].Trim().Trim('\uFEFF');
+                    string downloadUrl = parts[1].Trim();
+
+                    if (!string.Equals(remoteVersion, LauncherVersion, StringComparison.OrdinalIgnoreCase))
+                    {
+                        lblStatus.Text = $"Updating launcher to v{remoteVersion}...";
+                        progressBar.Style = ProgressBarStyle.Marquee;
+                        await UpdateLauncher(http, downloadUrl);
+                        return; // App will restart
+                    }
+                }
+            }
+            catch { /* If check fails, just continue with current version */ }
+
+            // No update needed — continue normal init
+            lblStatus.Text = "Ready";
+            progressBar.Style = ProgressBarStyle.Continuous;
+            progressBar.Value = 0;
+            _ = SetButtonTextFromVersionAsync();
+            _ = CheckServerStatusLoop();
+            StartMusic();
+        }
+
+        async Task UpdateLauncher(HttpClient http, string downloadUrl)
+        {
+            string currentExe = Application.ExecutablePath;
+            string tempExe = currentExe + ".update";
+            string oldExe = currentExe + ".old";
+
+            try
+            {
+                // Download new launcher to temp file
+                using var response = await http.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead);
+                response.EnsureSuccessStatusCode();
+                using var stream = await response.Content.ReadAsStreamAsync();
+                using (var fs = new FileStream(tempExe, FileMode.Create, FileAccess.Write))
+                    await stream.CopyToAsync(fs);
+
+                // Swap: current → .old, temp → current
+                if (File.Exists(oldExe)) File.Delete(oldExe);
+                File.Move(currentExe, oldExe);
+                File.Move(tempExe, currentExe);
+
+                // Restart
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = currentExe,
+                    UseShellExecute = true
+                });
+                Environment.Exit(0);
+            }
+            catch (Exception ex)
+            {
+                // Rollback if swap failed
+                try
+                {
+                    if (!File.Exists(currentExe) && File.Exists(oldExe))
+                        File.Move(oldExe, currentExe);
+                    if (File.Exists(tempExe)) File.Delete(tempExe);
+                }
+                catch { }
+
+                MessageBox.Show($"Launcher update failed: {ex.Message}\nContinuing with current version.");
+                lblStatus.Text = "Ready";
+                progressBar.Style = ProgressBarStyle.Continuous;
+                progressBar.Value = 0;
+                _ = SetButtonTextFromVersionAsync();
+                _ = CheckServerStatusLoop();
+                StartMusic();
+            }
         }
 
         // ═══════════════════════════════════════════════════════════════
