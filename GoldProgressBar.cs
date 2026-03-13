@@ -62,10 +62,16 @@ namespace UoDangerLauncher
             SetStyle(
                 ControlStyles.UserPaint |
                 ControlStyles.AllPaintingInWmPaint |
-                ControlStyles.OptimizedDoubleBuffer |
-                ControlStyles.SupportsTransparentBackColor, true);
-            BackColor = Color.FromArgb(0, 0, 0, 0);
+                ControlStyles.OptimizedDoubleBuffer, true);
             Height = 16;
+        }
+
+        protected override void OnSizeChanged(EventArgs e)
+        {
+            base.OnSizeChanged(e);
+            int radius = Height / 2;
+            using var path = RoundedRect(new Rectangle(0, 0, Width, Height), radius);
+            Region = new Region(path);
         }
 
         protected override void OnPaint(PaintEventArgs e)
@@ -77,11 +83,7 @@ namespace UoDangerLauncher
             var bounds = new Rectangle(0, 0, Width, Height);
 
             // Track background
-            using (var trackPath = RoundedRect(bounds, radius))
-            using (var trackBrush = new SolidBrush(Color.FromArgb(40, 40, 45)))
-            {
-                g.FillPath(trackBrush, trackPath);
-            }
+            g.FillRectangle(new SolidBrush(Color.FromArgb(40, 40, 45)), bounds);
 
             if (_style == ProgressBarStyle.Marquee)
             {
@@ -89,33 +91,30 @@ namespace UoDangerLauncher
                 int x = _marqueeOffset - 200;
                 int clampedX = Math.Max(0, x);
                 int clampedW = Math.Min(barWidth, Width - clampedX);
-                if (clampedW > radius * 2)
+                if (clampedW > 4)
                 {
                     var barRect = new Rectangle(clampedX, 0, clampedW, Height);
-                    using var barPath = RoundedRect(barRect, radius);
                     using var brush = new LinearGradientBrush(
                         barRect, Color.FromArgb(212, 175, 55), Color.FromArgb(180, 140, 30), 0f);
-                    g.FillPath(brush, barPath);
+                    g.FillRectangle(brush, barRect);
                 }
             }
             else if (_value > 0 && _maximum > 0)
             {
                 int fillWidth = (int)((long)_value * Width / _maximum);
-                fillWidth = Math.Clamp(fillWidth, radius * 2, Width);
+                fillWidth = Math.Clamp(fillWidth, 4, Width);
                 var fillRect = new Rectangle(0, 0, fillWidth, Height);
 
-                using var fillPath = RoundedRect(fillRect, radius);
                 using var fillBrush = new LinearGradientBrush(
                     fillRect, Color.FromArgb(222, 185, 55), Color.FromArgb(180, 140, 30), 90f);
-                g.FillPath(fillBrush, fillPath);
+                g.FillRectangle(fillBrush, fillRect);
 
                 // Subtle shine on top half
-                var shineRect = new Rectangle(1, 1, fillWidth - 2, Height / 2);
+                var shineRect = new Rectangle(0, 0, fillWidth, Height / 2);
                 if (shineRect.Width > 0 && shineRect.Height > 0)
                 {
-                    using var shineBrush = new SolidBrush(Color.FromArgb(40, 255, 255, 255));
-                    using var shinePath = RoundedRectTop(shineRect, Math.Max(1, radius - 1));
-                    g.FillPath(shineBrush, shinePath);
+                    using var shineBrush = new SolidBrush(Color.FromArgb(35, 255, 255, 255));
+                    g.FillRectangle(shineBrush, shineRect);
                 }
             }
         }
@@ -128,17 +127,6 @@ namespace UoDangerLauncher
             path.AddArc(r.Right - d, r.Y, d, d, 270, 90);
             path.AddArc(r.Right - d, r.Bottom - d, d, d, 0, 90);
             path.AddArc(r.X, r.Bottom - d, d, d, 90, 90);
-            path.CloseFigure();
-            return path;
-        }
-
-        private static GraphicsPath RoundedRectTop(Rectangle r, int radius)
-        {
-            var path = new GraphicsPath();
-            int d = Math.Max(1, radius * 2);
-            path.AddArc(r.X, r.Y, d, d, 180, 90);
-            path.AddArc(r.Right - d, r.Y, d, d, 270, 90);
-            path.AddLine(r.Right, r.Bottom, r.X, r.Bottom);
             path.CloseFigure();
             return path;
         }

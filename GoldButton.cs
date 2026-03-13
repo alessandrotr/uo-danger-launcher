@@ -12,18 +12,25 @@ namespace UoDangerLauncher
         private readonly System.Windows.Forms.Timer _animTimer;
         private bool _hovering;
         private bool _pressing;
+        private const int Radius = 14;
 
         public GoldButton()
         {
             SetStyle(
                 ControlStyles.UserPaint |
                 ControlStyles.AllPaintingInWmPaint |
-                ControlStyles.OptimizedDoubleBuffer |
-                ControlStyles.SupportsTransparentBackColor, true);
+                ControlStyles.OptimizedDoubleBuffer, true);
             FlatStyle = FlatStyle.Flat;
             FlatAppearance.BorderSize = 0;
             _animTimer = new System.Windows.Forms.Timer { Interval = 16 };
             _animTimer.Tick += AnimTick;
+        }
+
+        protected override void OnSizeChanged(EventArgs e)
+        {
+            base.OnSizeChanged(e);
+            using var path = RoundedRect(new Rectangle(0, 0, Width, Height), Radius);
+            Region = new Region(path);
         }
 
         private void AnimTick(object? sender, EventArgs e)
@@ -84,8 +91,7 @@ namespace UoDangerLauncher
             g.SmoothingMode = SmoothingMode.AntiAlias;
             g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
 
-            const int radius = 14;
-            var rect = new Rectangle(0, 0, Width - 1, Height - 1);
+            var rect = new Rectangle(0, 0, Width, Height);
 
             // Button body — subtle lighten on hover
             Color baseColor = Enabled ? BackColor : Color.FromArgb(100, 85, 25);
@@ -95,20 +101,15 @@ namespace UoDangerLauncher
             if (_pressing && Enabled)
                 bodyColor = LerpColor(bodyColor, Color.FromArgb(160, 130, 25), 0.3f);
 
-            using (var bodyPath = RoundedRect(rect, radius))
-            using (var bodyBrush = new SolidBrush(bodyColor))
-            {
-                g.FillPath(bodyBrush, bodyPath);
-            }
+            g.FillRectangle(new SolidBrush(bodyColor), rect);
 
             // Top highlight (subtle glass effect)
-            var highlightRect = new Rectangle(2, 2, Width - 5, Height / 2 - 2);
+            var highlightRect = new Rectangle(0, 0, Width, Height / 2);
             if (highlightRect.Width > 0 && highlightRect.Height > 0)
             {
-                using var highlightPath = RoundedRectTop(highlightRect, Math.Max(1, radius - 1));
                 using var highlightBrush = new SolidBrush(
-                    Color.FromArgb(Enabled ? 35 : 10, 255, 255, 255));
-                g.FillPath(highlightBrush, highlightPath);
+                    Color.FromArgb(Enabled ? 30 : 10, 255, 255, 255));
+                g.FillRectangle(highlightBrush, highlightRect);
             }
 
             // Text
@@ -134,17 +135,6 @@ namespace UoDangerLauncher
             path.AddArc(r.Right - d, r.Y, d, d, 270, 90);
             path.AddArc(r.Right - d, r.Bottom - d, d, d, 0, 90);
             path.AddArc(r.X, r.Bottom - d, d, d, 90, 90);
-            path.CloseFigure();
-            return path;
-        }
-
-        private static GraphicsPath RoundedRectTop(Rectangle r, int radius)
-        {
-            var path = new GraphicsPath();
-            int d = Math.Max(1, radius * 2);
-            path.AddArc(r.X, r.Y, d, d, 180, 90);
-            path.AddArc(r.Right - d, r.Y, d, d, 270, 90);
-            path.AddLine(r.Right, r.Bottom, r.X, r.Bottom);
             path.CloseFigure();
             return path;
         }

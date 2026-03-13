@@ -12,6 +12,7 @@ partial class Form1
     private System.Windows.Forms.Label lblStatus;
     private System.Windows.Forms.Label lblMessage;
     private System.Windows.Forms.Label lblVersion;
+    private System.Windows.Forms.LinkLabel lnkDiscord;
 
     protected override void Dispose(bool disposing)
     {
@@ -32,6 +33,7 @@ partial class Form1
         panelFooter = new Panel();
         lblStatus = new Label();
         lblVersion = new Label();
+        lnkDiscord = new LinkLabel();
 
         panelHeader.SuspendLayout();
         ((System.ComponentModel.ISupportInitialize)picLogo).BeginInit();
@@ -91,8 +93,8 @@ partial class Form1
         // —— Footer (progress bar on row 0, status text on row 1, version bottom-right) ——
         panelFooter.BackColor = Color.Transparent;
         panelFooter.Dock = DockStyle.Bottom;
-        panelFooter.Size = new Size(800, 72);
-        panelFooter.MinimumSize = new Size(400, 72);
+        panelFooter.Size = new Size(800, 82);
+        panelFooter.MinimumSize = new Size(400, 82);
         panelFooter.Padding = new Padding(24, 10, 24, 10);
 
         progressBar.Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top;
@@ -120,6 +122,18 @@ partial class Form1
         lblVersion.Text = "";
         lblVersion.BackColor = Color.Transparent;
         panelFooter.Controls.Add(lblVersion);
+
+        lnkDiscord.Anchor = AnchorStyles.Left | AnchorStyles.Top;
+        lnkDiscord.AutoSize = true;
+        lnkDiscord.Font = new Font("Segoe UI", 9F);
+        lnkDiscord.LinkColor = Color.FromArgb(114, 137, 218);
+        lnkDiscord.ActiveLinkColor = Color.FromArgb(134, 157, 238);
+        lnkDiscord.VisitedLinkColor = Color.FromArgb(114, 137, 218);
+        lnkDiscord.BackColor = Color.Transparent;
+        lnkDiscord.Location = new Point(24, 52);
+        lnkDiscord.Text = "Join our Discord";
+        lnkDiscord.LinkClicked += lnkDiscord_LinkClicked;
+        panelFooter.Controls.Add(lnkDiscord);
 
         // —— Form ——
         AutoScaleDimensions = new SizeF(96F, 96F);

@@ -466,6 +466,10 @@ namespace UoDangerLauncher
             var buffer = new byte[8192];
             long totalRead = 0;
             int bytesRead;
+            var speedTimer = System.Diagnostics.Stopwatch.StartNew();
+            long lastSpeedBytes = 0;
+            double lastSpeed = 0;
+
             while ((bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length)) > 0)
             {
                 await fileStream.WriteAsync(buffer, 0, bytesRead);
@@ -475,11 +479,49 @@ namespace UoDangerLauncher
                 {
                     int percent = (int)((totalRead * 100L) / totalBytes);
                     progressBar.Value = Math.Min(100, percent);
-                    lblStatus.Text = $"{statusPrefix}... {percent}%";
+
+                    // Calculate speed every 500ms to avoid flickering
+                    double elapsed = speedTimer.Elapsed.TotalSeconds;
+                    if (elapsed >= 0.5)
+                    {
+                        lastSpeed = (totalRead - lastSpeedBytes) / elapsed;
+                        lastSpeedBytes = totalRead;
+                        speedTimer.Restart();
+                    }
+
+                    string speedText = lastSpeed > 0 ? FormatSpeed(lastSpeed) : "";
+                    string etaText = "";
+                    if (lastSpeed > 0)
+                    {
+                        long remaining = totalBytes - totalRead;
+                        int seconds = (int)(remaining / lastSpeed);
+                        etaText = seconds >= 60
+                            ? $" — {seconds / 60}m {seconds % 60}s left"
+                            : $" — {seconds}s left";
+                    }
+
+                    lblStatus.Text = $"{statusPrefix}... {percent}%{(speedText.Length > 0 ? $"  ({speedText}{etaText})" : "")}";
                     progressBar.Refresh();
                     Application.DoEvents();
                 }
             }
+        }
+
+        static string FormatSpeed(double bytesPerSec)
+        {
+            if (bytesPerSec >= 1_048_576)
+                return $"{bytesPerSec / 1_048_576:F1} MB/s";
+            if (bytesPerSec >= 1024)
+                return $"{bytesPerSec / 1024:F0} KB/s";
+            return $"{bytesPerSec:F0} B/s";
+        }
+
+        const string DiscordInviteUrl = "https://discord.gg/9zsZDuMK6c";
+
+        void lnkDiscord_LinkClicked(object? sender, LinkLabelLinkClickedEventArgs e)
+        {
+            try { Process.Start(new ProcessStartInfo(DiscordInviteUrl) { UseShellExecute = true }); }
+            catch { }
         }
 
         void LaunchGame()
