@@ -17,6 +17,7 @@ partial class Form1
     private System.Windows.Forms.Label btnMinimize;
     private System.Windows.Forms.Label lblServerStatus;
     private System.Windows.Forms.Label lblMute;
+    private System.Windows.Forms.TrackBar volumeSlider;
     private System.Windows.Forms.LinkLabel lnkWebsite;
 
     protected override void Dispose(bool disposing)
@@ -43,6 +44,7 @@ partial class Form1
         btnMinimize = new Label();
         lblServerStatus = new Label();
         lblMute = new Label();
+        volumeSlider = new TrackBar();
         lnkWebsite = new LinkLabel();
 
         panelHeader.SuspendLayout();
@@ -194,18 +196,34 @@ partial class Form1
         lnkWebsite.LinkClicked += lnkWebsite_LinkClicked;
         panelFooter.Controls.Add(lnkWebsite);
 
-        // Music mute toggle (top-left)
+        // Speaker icon (click to mute/unmute)
         lblMute.Anchor = AnchorStyles.Left | AnchorStyles.Top;
         lblMute.AutoSize = true;
-        lblMute.Font = new Font("Segoe UI", 9F);
+        lblMute.Font = new Font("Segoe UI", 12F);
         lblMute.ForeColor = Color.FromArgb(140, 140, 145);
         lblMute.BackColor = Color.Transparent;
         lblMute.Cursor = Cursors.Hand;
-        lblMute.Location = new Point(10, 8);
-        lblMute.Text = "";
+        lblMute.Location = new Point(8, 6);
+        lblMute.Text = "\U0001F507";
         lblMute.Visible = false;
         lblMute.Click += lblMute_Click;
         panelHeader.Controls.Add(lblMute);
+
+        // Volume slider
+        volumeSlider.Anchor = AnchorStyles.Left | AnchorStyles.Top;
+        volumeSlider.Location = new Point(34, 6);
+        volumeSlider.Size = new Size(100, 25);
+        volumeSlider.Minimum = 0;
+        volumeSlider.Maximum = 100;
+        volumeSlider.TickFrequency = 10;
+        volumeSlider.TickStyle = TickStyle.None;
+        volumeSlider.SmallChange = 5;
+        volumeSlider.LargeChange = 10;
+        volumeSlider.Value = 0;
+        volumeSlider.BackColor = Color.FromArgb(20, 20, 22);
+        volumeSlider.Visible = false;
+        volumeSlider.ValueChanged += OnVolumeChanged;
+        panelHeader.Controls.Add(volumeSlider);
 
         // —— Form ——
         AutoScaleDimensions = new SizeF(96F, 96F);

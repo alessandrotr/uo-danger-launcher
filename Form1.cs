@@ -50,7 +50,8 @@ namespace UoDangerLauncher
 
         class LauncherSettings
         {
-            public bool MusicMuted { get; set; }
+            public bool MusicMuted { get; set; }          // legacy, used for migration
+            public int MusicVolume { get; set; } = -1;    // 0–100, -1 means not yet set
             public string LauncherVersion { get; set; } = LauncherVersionFallback;
             public string ClientVersion { get; set; } = "";
         }
@@ -295,13 +296,25 @@ namespace UoDangerLauncher
         [DllImport("winmm.dll", CharSet = CharSet.Unicode)]
         static extern int mciSendString(string command, StringBuilder? buffer, int bufferSize, IntPtr callback);
 
-        bool LoadMuteSetting() => _settings.MusicMuted;
-
-        void SaveMuteSetting(bool muted)
+        int LoadVolumeSetting()
         {
-            _settings.MusicMuted = muted;
+            // Migrate legacy mute setting
+            if (_settings.MusicVolume < 0)
+            {
+                _settings.MusicVolume = _settings.MusicMuted ? 0 : 0; // default to 0 (minimum) for first launch
+                SaveSettings();
+            }
+            return _settings.MusicVolume;
+        }
+
+        void SaveVolumeSetting(int volume)
+        {
+            _settings.MusicVolume = Math.Clamp(volume, 0, 100);
+            _settings.MusicMuted = volume == 0;
             SaveSettings();
         }
+
+        int MciVolumeFromPercent(int percent) => (int)(percent / 100.0 * 1000);
 
         void StartMusic()
         {
@@ -314,18 +327,18 @@ namespace UoDangerLauncher
                 using (var fs = new FileStream(_musicTempPath, FileMode.Create, FileAccess.Write))
                     stream.CopyTo(fs);
 
-                bool wasMuted = LoadMuteSetting();
+                int vol = LoadVolumeSetting();
 
                 mciSendString($"open \"{_musicTempPath}\" type mpegvideo alias bgmusic", null, 0, IntPtr.Zero);
                 mciSendString("play bgmusic repeat", null, 0, IntPtr.Zero);
-                mciSendString($"setaudio bgmusic volume to {(wasMuted ? 0 : 300)}", null, 0, IntPtr.Zero);
+                mciSendString($"setaudio bgmusic volume to {MciVolumeFromPercent(vol)}", null, 0, IntPtr.Zero);
                 _musicPlaying = true;
-                _musicMuted = wasMuted;
+                _musicMuted = vol == 0;
 
-                lblMute.Text = wasMuted ? "Sound: OFF" : "Sound: ON";
-                lblMute.ForeColor = wasMuted ? Color.FromArgb(80, 80, 85) : Color.FromArgb(140, 140, 145);
+                volumeSlider.Value = vol;
+                UpdateVolumeIcon(vol);
                 lblMute.Visible = true;
-                PositionMuteLabel();
+                volumeSlider.Visible = true;
             }
             catch { }
         }
@@ -346,21 +359,47 @@ namespace UoDangerLauncher
         void lblMute_Click(object? sender, EventArgs e)
         {
             if (!_musicPlaying) return;
-            _musicMuted = !_musicMuted;
-            SaveMuteSetting(_musicMuted);
-            if (_musicMuted)
+            // Toggle mute: if volume > 0, mute; if 0, restore to 30%
+            if (volumeSlider.Value > 0)
             {
-                mciSendString("setaudio bgmusic volume to 0", null, 0, IntPtr.Zero);
-                lblMute.Text = "Sound: OFF";
-                lblMute.ForeColor = Color.FromArgb(80, 80, 85);
+                _volumeBeforeMute = volumeSlider.Value;
+                volumeSlider.Value = 0;
             }
             else
             {
-                mciSendString("setaudio bgmusic volume to 300", null, 0, IntPtr.Zero);
-                lblMute.Text = "Sound: ON";
-                lblMute.ForeColor = Color.FromArgb(120, 120, 125);
+                volumeSlider.Value = _volumeBeforeMute > 0 ? _volumeBeforeMute : 30;
             }
-            PositionMuteLabel();
+        }
+
+        int _volumeBeforeMute = 30;
+
+        void OnVolumeChanged(object? sender, EventArgs e)
+        {
+            int vol = volumeSlider.Value;
+            _musicMuted = vol == 0;
+            if (_musicPlaying)
+                mciSendString($"setaudio bgmusic volume to {MciVolumeFromPercent(vol)}", null, 0, IntPtr.Zero);
+            UpdateVolumeIcon(vol);
+            SaveVolumeSetting(vol);
+        }
+
+        void UpdateVolumeIcon(int vol)
+        {
+            if (vol == 0)
+            {
+                lblMute.Text = "\U0001F507";
+                lblMute.ForeColor = Color.FromArgb(80, 80, 85);
+            }
+            else if (vol < 50)
+            {
+                lblMute.Text = "\U0001F509";
+                lblMute.ForeColor = Color.FromArgb(140, 140, 145);
+            }
+            else
+            {
+                lblMute.Text = "\U0001F50A";
+                lblMute.ForeColor = Color.FromArgb(140, 140, 145);
+            }
         }
 
         void PositionMuteLabel()
