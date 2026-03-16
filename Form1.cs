@@ -679,6 +679,8 @@ namespace UoDangerLauncher
             string remoteVersion = parts[0].Trim().Trim('\uFEFF');
             string clientZipUrl = parts[1].Trim();
             string updateZipUrl = parts[2].Trim();
+            bool forceReinstall = parts.Length >= 4 &&
+                string.Equals(parts[3].Trim(), "reinstall", StringComparison.OrdinalIgnoreCase);
 
             if (clientExists && hasLocalVersion && string.Equals(localVersion, remoteVersion, StringComparison.OrdinalIgnoreCase))
             {
@@ -686,17 +688,42 @@ namespace UoDangerLauncher
                 return true;
             }
 
-            bool isFreshInstall = !hasLocalVersion || !clientExists;
+            bool isFreshInstall = !hasLocalVersion || !clientExists || forceReinstall;
 
             if (isFreshInstall)
             {
                 SetLoadingState("Downloading...");
-                lblStatus.Text = "Downloading game for the first time...";
-                lblMessage.Text = "The game is being downloaded. Once installed, new files and folders will appear next to the launcher.\nPlease do not move, rename, or delete any of them.";
+                lblStatus.Text = forceReinstall
+                    ? "Reinstalling client..."
+                    : "Downloading game for the first time...";
+                lblMessage.Text = forceReinstall
+                    ? "A full reinstall is required. Your settings and profiles will be preserved."
+                    : "The game is being downloaded. Once installed, new files and folders will appear next to the launcher.\nPlease do not move, rename, or delete any of them.";
                 lblMessage.Visible = true;
 
+                // Back up Profiles before reinstall
+                string profilesDir = Path.Combine(clientFolder, "ClassicUO", "Data", "Profiles");
+                string profilesBackup = "profiles_backup";
+                bool hasProfilesBackup = false;
+                if (forceReinstall && Directory.Exists(profilesDir))
+                {
+                    if (Directory.Exists(profilesBackup)) Directory.Delete(profilesBackup, true);
+                    Directory.Move(profilesDir, profilesBackup);
+                    hasProfilesBackup = true;
+                }
+
                 try { await DownloadFileWithProgress(http, clientZipUrl, "client.zip", "Downloading game"); }
-                catch (Exception ex) { MessageBox.Show("Download failed: " + ex.Message); return false; }
+                catch (Exception ex)
+                {
+                    // Restore profiles on failure
+                    if (hasProfilesBackup && !Directory.Exists(profilesDir))
+                    {
+                        Directory.CreateDirectory(Path.GetDirectoryName(profilesDir)!);
+                        Directory.Move(profilesBackup, profilesDir);
+                    }
+                    MessageBox.Show("Download failed: " + ex.Message);
+                    return false;
+                }
 
                 SetLoadingState("Extracting...");
                 progressBar.Style = ProgressBarStyle.Continuous;
@@ -725,9 +752,15 @@ namespace UoDangerLauncher
                     Directory.Move(tempExtract, clientFolder);
                 }
 
-                string profilesDir = Path.Combine(clientFolder, "ClassicUO", "Data", "Profiles");
-                if (Directory.Exists(profilesDir))
-                    Directory.Delete(profilesDir, true);
+                // Remove Profiles from zip, restore backup if we had one
+                string newProfilesDir = Path.Combine(clientFolder, "ClassicUO", "Data", "Profiles");
+                if (Directory.Exists(newProfilesDir))
+                    Directory.Delete(newProfilesDir, true);
+                if (hasProfilesBackup && Directory.Exists(profilesBackup))
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(newProfilesDir)!);
+                    Directory.Move(profilesBackup, newProfilesDir);
+                }
             }
             else
             {
