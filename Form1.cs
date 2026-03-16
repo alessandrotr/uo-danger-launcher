@@ -415,6 +415,8 @@ namespace UoDangerLauncher
 
         async Task CheckLauncherUpdateThenInit()
         {
+            btnPlay.Enabled = false;
+            btnPlay.BackColor = ButtonColorDisabled;
             lblStatus.Text = "Checking for launcher updates...";
             try
             {
@@ -445,6 +447,8 @@ namespace UoDangerLauncher
             lblStatus.Text = "Ready";
             progressBar.Style = ProgressBarStyle.Continuous;
             progressBar.Value = 0;
+            btnPlay.Enabled = true;
+            btnPlay.BackColor = ButtonColorNormal;
             _ = SetButtonTextFromVersionAsync();
             _ = CheckServerStatusLoop();
             StartMusic();
@@ -497,6 +501,8 @@ namespace UoDangerLauncher
                 lblStatus.Text = "Ready";
                 progressBar.Style = ProgressBarStyle.Continuous;
                 progressBar.Value = 0;
+                btnPlay.Enabled = true;
+                btnPlay.BackColor = ButtonColorNormal;
                 _ = SetButtonTextFromVersionAsync();
                 _ = CheckServerStatusLoop();
                 StartMusic();
